@@ -1,7 +1,9 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { publish } from './bus.ts';
 import { worktreePathFor } from './config.ts';
 import { branchExists, git, isClean, listWorktrees, currentBranch } from './git.ts';
+import { updateTask } from './repo/tasks.ts';
 import type { Project, Task } from './types.ts';
 
 export const BRANCH_PREFIX = 'karkhana/';
@@ -40,6 +42,20 @@ export async function createWorktree(
   await git(project.path, ['worktree', 'add', worktreePath, '-b', branch, project.base_branch]);
 
   return { worktreePath, branch };
+}
+
+/**
+ * Creates a task's worktree *and* records it on the task row.
+ *
+ * Always use this rather than calling `createWorktree` directly: a worktree
+ * that exists on disk but not in the database is invisible to the diff view,
+ * the merge path, and orphan reconciliation.
+ */
+export async function provisionTaskWorktree(project: Project, task: Task): Promise<Task> {
+  const { worktreePath, branch } = await createWorktree(project, task.id);
+  const updated = updateTask(task.id, { worktree_path: worktreePath, branch });
+  publish({ type: 'status', taskId: task.id, task: updated });
+  return updated;
 }
 
 /**
