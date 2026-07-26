@@ -1,0 +1,17 @@
+node_modules/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+
+# Local-first state — machine specific, never committed.
+karkhana.config.json
+karkhana.db
+karkhana.db-wal
+karkhana.db-shm
+
+# Worktrees live outside registered repos, but guard against a config that
+# points them inside this one.
+.karkhana/
+
+.DS_Store
+*.log

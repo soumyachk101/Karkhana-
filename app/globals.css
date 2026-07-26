@@ -1,0 +1,66 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-ink-900: #0a0c0f;
+  --color-ink-850: #0e1116;
+  --color-ink-800: #13171d;
+  --color-ink-700: #191e26;
+  --color-ink-600: #232a34;
+  --color-ink-500: #313a47;
+  --color-ink-400: #4a5563;
+  --color-ink-300: #6b7686;
+  --color-ink-200: #97a1af;
+  --color-ink-100: #ced4dc;
+  --color-ink-50: #eef1f5;
+
+  --color-forge-500: #f59e0b;
+  --color-forge-400: #fbbf24;
+  --color-forge-600: #d97706;
+
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--color-ink-900);
+  color: var(--color-ink-100);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Dense, dark scrollbars — this UI is mostly scrolling log panes. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-ink-600) transparent;
+}
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-ink-600);
+  border-radius: 5px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-500);
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@keyframes karkhana-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.animate-live {
+  animation: karkhana-pulse 1.4s ease-in-out infinite;
+}
