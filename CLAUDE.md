@@ -212,11 +212,13 @@ lib/repo/{projects,tasks,events}.ts
 lib/agent/streamParser.ts NDJSON split + noise filter
 lib/agent/runner.ts       spawn, stream, persist, cancel
 lib/agent/orchestrator.ts queue, concurrency gate, retry/resume/merge/discard
+lib/testHelpers/          temp git repo, fake `claude` binary, waitUntil, env.ts
 app/                      App Router UI + /api routes
 hooks/useSocket.ts        one reconnecting WebSocket for the app
 scripts/wt-test.mts       worktree isolation + merge
 scripts/agent-test.mts    one agent end to end
 scripts/e2e-test.mts      HTTP + WebSocket, two agents on one repo
+scripts/smoke.mts         post-deploy check — no repo, no API key
 ```
 
 `lib/format.ts` is imported by client components, so it must stay free of node
@@ -231,11 +233,65 @@ debug the backend:
 npm run wt:test    -- <repoPath> [baseBranch] [--merge]
 npm run agent:test -- <repoPath> "<prompt>" [model] [--keep]
 npm run e2e        -- <repoPath> [baseUrl]        # needs `npm run dev` running
+npm run smoke      -- [baseUrl]                   # needs a running server, no repo/API key
 ```
 
 `--merge` creates a real merge commit (and rolls it back). `--keep` leaves the
 worktree on disk to inspect. The e2e harness dispatches two agents at the same
-repo and asserts their worktrees, branches, and diffs stay disjoint.
+repo and asserts their worktrees, branches, and diffs stay disjoint. `smoke` is
+the one safe to wire into a service unit or CI deploy step — it asserts the
+server answers, resolved a binary, and pushes WebSocket frames, without ever
+touching a real repo or spending an API call.
+
+All four are manual — they need a real repo argument (agent-test/e2e also a
+real API key) — and stay that way on purpose. They exercise the one thing the
+unit suite below can't: that a real `claude` binary actually produces the
+stream shape `streamParser.ts` parses.
+
+## Testing
+
+```bash
+npm run typecheck   # tsc --noEmit
+npm test            # node:test over lib/**/*.test.ts
+```
+
+Hermetic: real temp git repos, a real SQLite file, and a fake `claude` binary
+(`lib/testHelpers/fakeClaude.mjs`) standing in for the real one. No network, no
+API key, no cost. `.github/workflows/ci.yml` runs both plus `npm run build` on
+every push and PR.
+
+The fake binary reads a JSON directive out of the `-p` prompt (`fakePrompt({
+delayMs, exitCode, isError })` in `lib/testHelpers/harness.ts`) and emits the
+same stream-json shapes the real CLI does. Point `claudeBinPath` at it via
+`updateConfig({ claudeBinPath: FAKE_CLAUDE_BIN })` — the orchestrator can't
+tell the difference.
+
+Three things worth knowing before adding more tests here:
+
+- **Import `testHelpers/env.ts` first, always.** Any test file that touches
+  `lib/config.ts` — directly or transitively (`db.ts`, `worktree.ts`,
+  `orchestrator.ts`, `wsServer.ts` all do) — must `import '../testHelpers/env.ts'`
+  as its *first* import. `config.ts` reads `KARKHANA_HOME` into a top-level
+  `const` at import time; setting the env var after that module has already
+  been evaluated is a silent no-op that points the test at this repo's real
+  `karkhana.db` and `karkhana.config.json` instead of a throwaway temp dir.
+- **`node --test` isolates by file, not by `test()` block.** Each test file
+  gets its own process, so the config/db/bus/orchestrator singletons (see
+  `lib/singleton.ts`) never bleed across files. They *do* persist across
+  multiple `test()` calls within one file — reset the config cache with
+  `holder('config').config = undefined` when a test needs fresh defaults, and
+  construct a bare `new Orchestrator()` per test (the class is exported
+  specifically so tests don't fight over the process-wide singleton instance).
+  A task deliberately left in a non-terminal DB status by one test (e.g. to
+  probe a precondition check) will otherwise leak into a later test's
+  `requeuePersisted()`, which scans `queued` rows globally — delete it when
+  you're done with it.
+- **Don't poll `runningCount`/`queuedCount` to mean "fully settled."** A task
+  is shifted out of `pending` before it lands in `active` — worktree
+  provisioning in between is async — so both counters can read zero for an
+  instant while the last task is still mid-handoff, not actually finished.
+  Wait on the task's real DB status instead:
+  `waitUntil(() => getTask(id)?.status === 'needs_review')`.
 
 ## Gotchas worth knowing
 

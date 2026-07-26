@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { getDb, newId } from '../db.ts';
-import { guessDefaultBranch, isGitRepo, repoRoot } from '../git.ts';
+import { branchExists, guessDefaultBranch, isGitRepo, repoRoot } from '../git.ts';
 import type { Project } from '../types.ts';
 
 export function listProjects(): Project[] {
@@ -52,9 +52,21 @@ export async function createProject(input: {
   return project;
 }
 
-export function updateProject(id: string, patch: Partial<Pick<Project, 'name' | 'base_branch'>>) {
+export async function updateProject(
+  id: string,
+  patch: Partial<Pick<Project, 'name' | 'base_branch'>>,
+): Promise<Project> {
   const current = getProject(id);
   if (!current) throw new Error(`No project ${id}`);
+
+  // An unchecked typo here fails every subsequent createWorktree for this
+  // project at task-creation time, far from the cause — check it up front.
+  if (patch.base_branch && patch.base_branch !== current.base_branch) {
+    if (!(await branchExists(current.path, patch.base_branch))) {
+      throw new Error(`Branch "${patch.base_branch}" does not exist in ${current.path}.`);
+    }
+  }
+
   const next = { ...current, ...patch };
   getDb()
     .prepare('UPDATE projects SET name = @name, base_branch = @base_branch WHERE id = @id')

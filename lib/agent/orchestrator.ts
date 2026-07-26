@@ -21,7 +21,7 @@ import { runAgent, type RunHandle } from './runner.ts';
 
 type Pending = { taskId: string; resume: boolean };
 
-class Orchestrator {
+export class Orchestrator {
   /** Tasks with a live child process, keyed by task id. */
   private active = new Map<string, RunHandle>();
   /** FIFO of admitted-but-not-yet-started tasks. */

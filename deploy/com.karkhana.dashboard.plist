@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  launchd unit for Karkhana (macOS). Placeholders are filled by the sed command
+  in README.md — launchd starts in `/` with an empty environment, so HOME, PATH
+  and KARKHANA_HOME all have to be spelled out. Without HOME the spawned agent
+  cannot find its credentials; without PATH it cannot find `git`.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.karkhana.dashboard</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>{{NODE}}</string>
+    <string>{{KARKHANA_DIR}}/server/index.mjs</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>{{KARKHANA_DIR}}</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>NODE_ENV</key>
+    <string>production</string>
+    <key>KARKHANA_HOME</key>
+    <string>{{KARKHANA_DIR}}</string>
+    <key>KARKHANA_HOST</key>
+    <string>127.0.0.1</string>
+    <key>PORT</key>
+    <string>3000</string>
+    <key>HOME</key>
+    <string>{{HOME}}</string>
+    <key>PATH</key>
+    <string>{{PATH}}</string>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>{{KARKHANA_DIR}}/karkhana.log</string>
+  <key>StandardErrorPath</key>
+  <string>{{KARKHANA_DIR}}/karkhana.log</string>
+</dict>
+</plist>

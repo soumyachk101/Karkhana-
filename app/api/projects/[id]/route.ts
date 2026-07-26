@@ -20,7 +20,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const { id } = await params;
   return handle(async () => {
     const body = (await req.json()) as { name?: string; base_branch?: string };
-    return { project: updateProject(id, body) };
+    return { project: await updateProject(id, body) };
   });
 }
 

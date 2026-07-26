@@ -17,7 +17,10 @@ export type KarkhanaConfig = {
   dbPath: string;
 };
 
-const ROOT = process.cwd();
+// Where machine-local state lives: karkhana.config.json and karkhana.db. The
+// cwd is right when started through npm, but a service unit starts in `/`, so
+// KARKHANA_HOME exists to pin it.
+const ROOT = process.env.KARKHANA_HOME ?? process.cwd();
 const CONFIG_PATH = path.join(ROOT, 'karkhana.config.json');
 
 /** Places Claude Code commonly lands, checked when it isn't on PATH. */
@@ -80,14 +83,38 @@ export function getConfig(): KarkhanaConfig {
   // Write the resolved config back so the detected binary path is visible and
   // editable rather than being magic.
   if (!fs.existsSync(CONFIG_PATH)) {
+    fs.mkdirSync(ROOT, { recursive: true }); // KARKHANA_HOME may not exist yet
     fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2) + '\n');
   }
   return config;
 }
 
+/**
+ * Validates and clamps a config patch before it's merged.
+ *
+ * A non-numeric `concurrency` (e.g. `"abc"` from a malformed PATCH body) used
+ * to pass `next.concurrency < 1` unclamped — `"abc" < 1` is `false` — and get
+ * written to disk verbatim. The orchestrator then evaluated
+ * `this.active.size < this.limit` as `0 < "abc"`, which is also `false`, so no
+ * task ever started again, across restarts, because the bad value persisted.
+ */
+function sanitizePatch(patch: Partial<KarkhanaConfig>): Partial<KarkhanaConfig> {
+  const clean: Partial<KarkhanaConfig> = { ...patch };
+  if ('concurrency' in clean) {
+    const n = Number(clean.concurrency);
+    clean.concurrency = Number.isFinite(n) ? Math.max(1, Math.floor(n)) : 1;
+  }
+  if ('claudeBinPath' in clean && typeof clean.claudeBinPath !== 'string') {
+    delete clean.claudeBinPath;
+  }
+  if ('worktreeRoot' in clean && clean.worktreeRoot !== null && typeof clean.worktreeRoot !== 'string') {
+    delete clean.worktreeRoot;
+  }
+  return clean;
+}
+
 export function updateConfig(patch: Partial<KarkhanaConfig>): KarkhanaConfig {
-  const next = { ...getConfig(), ...patch };
-  if (next.concurrency < 1) next.concurrency = 1;
+  const next = { ...getConfig(), ...sanitizePatch(patch) };
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(next, null, 2) + '\n');
   state.config = next;
   return next;

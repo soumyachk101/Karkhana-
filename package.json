@@ -7,10 +7,16 @@
     "dev": "node server/index.mjs",
     "build": "next build",
     "start": "NODE_ENV=production node server/index.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test 'lib/**/*.test.ts'",
+    "smoke": "node --experimental-strip-types scripts/smoke.mts",
     "wt:test": "node --experimental-strip-types scripts/wt-test.mts",
     "agent:test": "node --experimental-strip-types scripts/agent-test.mts",
     "db:reset": "rm -f karkhana.db karkhana.db-wal karkhana.db-shm",
     "e2e": "node --experimental-strip-types scripts/e2e-test.mts"
+  },
+  "engines": {
+    "node": ">=22.18"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.1",

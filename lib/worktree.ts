@@ -99,6 +99,18 @@ export type TaskDiff = {
 const MAX_PATCH_BYTES = 2 * 1024 * 1024;
 
 /**
+ * git's numstat path field for a rename is `old => new` or, when old and new
+ * share a prefix/suffix, `common/{old => new}/tail`. Reduce either to the
+ * resulting path — otherwise it renders as one garbled filename.
+ */
+function resolveDiffPath(field: string): string {
+  const braced = field.match(/^(.*)\{.* => (.*)\}(.*)$/);
+  if (braced) return `${braced[1]}${braced[2]}${braced[3]}`;
+  const plain = field.match(/^.* => (.*)$/);
+  return plain ? plain[1] : field;
+}
+
+/**
  * Everything the agent changed, relative to where its branch forked from base.
  *
  * Agents usually leave work uncommitted, so this diffs the *working tree*
@@ -135,7 +147,7 @@ export async function getTaskDiff(project: Project, task: Task): Promise<TaskDif
       const [added, deleted, filePath] = line.split('\t');
       const binary = added === '-' || deleted === '-';
       return {
-        path: filePath ?? '',
+        path: resolveDiffPath(filePath ?? ''),
         added: binary ? 0 : Number(added),
         deleted: binary ? 0 : Number(deleted),
         binary,

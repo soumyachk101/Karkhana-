@@ -1,0 +1,26 @@
+# systemd *user* unit for Karkhana (Linux). Placeholders are filled by the sed
+# command in README.md. A user unit inherits HOME and the user's environment,
+# which is what the spawned agent needs to find its credentials — do not turn
+# this into a system unit without carrying those over.
+
+[Unit]
+Description=Karkhana — local Claude Code agent dashboard
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory={{KARKHANA_DIR}}
+Environment=NODE_ENV=production
+Environment=KARKHANA_HOME={{KARKHANA_DIR}}
+Environment=KARKHANA_HOST=127.0.0.1
+Environment=PORT=3000
+ExecStart={{NODE}} {{KARKHANA_DIR}}/server/index.mjs
+# SIGTERM is handled: the orchestrator cancels live agents before the process
+# exits, so give it room rather than letting systemd SIGKILL mid-run.
+KillSignal=SIGTERM
+TimeoutStopSec=30
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

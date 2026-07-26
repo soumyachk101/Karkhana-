@@ -135,7 +135,7 @@ export function toLogLines(event: TaskEvent): LogLine[] {
 }
 
 /** One-line summary of a tool call — full paths are noise in a log pane. */
-function describeToolInput(name: string, input: Record<string, unknown> | undefined): string {
+export function describeToolInput(name: string, input: Record<string, unknown> | undefined): string {
   if (!input) return '';
   const short = (p: unknown) => String(p ?? '').split('/').slice(-2).join('/');
   switch (name) {

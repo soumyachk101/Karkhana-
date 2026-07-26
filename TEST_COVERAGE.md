@@ -3,10 +3,44 @@
 State of testing in Karkhana as of the current tip, and where the gaps are worth
 closing first.
 
-## Where we are
+## Update — 2026-07-27
 
-There is no test framework, no test runner, no CI, and no automated assertions
-that run without a human typing a repo path. What exists is three integration
+Priorities 1–3 below are done: `node:test` + `tsc --noEmit` wired up (see
+CLAUDE.md's Testing section), CI running both plus `npm run build` on every
+push/PR, and 63 hermetic tests across `streamParser`, `format`,
+`git.listWorktrees`, `worktree` (including the `mergeTask` conflict-abort path
+and the rename-path bug below), `config`, `orchestrator` concurrency
+invariants, and `wsServer` replay ordering. The two Priority 4 bugs are fixed
+with regression tests:
+
+- `PATCH /api/config` now clamps/coerces `concurrency` instead of persisting a
+  non-numeric value verbatim (`lib/config.ts` `sanitizePatch`).
+- `getTaskDiff` now resolves a git rename's numstat field (`old => new`, or
+  `dir/{old => new}`) to the clean new path instead of passing the raw arrow
+  string through as a filename (`lib/worktree.ts` `resolveDiffPath`).
+- Bonus: `PATCH /api/projects/[id]` now rejects a `base_branch` that doesn't
+  exist in the repo, instead of failing silently until the next task creation.
+
+The `wsServer.ts` replay-ordering "race" described in Priority 5 below was
+written up as a live concern but turned out not to be reproducible: the
+subscribe handler's add-to-subscriptions-then-replay is synchronous with no
+`await` in between, so it cannot interleave with a live `publish()` call on
+Node's single-threaded event loop. A regression test
+(`lib/wsServer.test.ts`) now locks that in rather than leaving it as an open
+question.
+
+Still open, in priority order: quoted/non-ASCII filenames in `getTaskDiff`
+(cosmetic — octal-escaped paths render literally rather than being
+un-escaped), API route validation beyond the two bugs above (`POST /api/tasks`
+edge cases, `DELETE /api/projects/[id]` ordering), `useSocket` reconnect
+behaviour, and the UI components — all still untested. `wt:test` has been run
+end-to-end including `--merge`; `agent:test`/`e2e` remain manual pre-release
+checks (see CLAUDE.md) since they spend a real API call.
+
+## Where we are (original analysis, pre-update)
+
+There was no test framework, no test runner, no CI, and no automated assertions
+that ran without a human typing a repo path. What existed was three integration
 harnesses under `scripts/`:
 
 | Harness | Covers | Requires |

@@ -6,14 +6,39 @@
 // http.Server, mount `ws` on it, boot the orchestrator, and delegate everything
 // else to Next. One process, one port, shared memory.
 
+import { existsSync } from 'node:fs';
 import { createServer } from 'node:http';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import next from 'next';
 
+// This file imports lib/*.ts directly, and Node only strips types without a
+// flag from 22.18 on. Older runtimes die with an opaque SyntaxError partway
+// through boot, so check here and say what to do about it.
+const [nodeMajor, nodeMinor] = process.versions.node.split('.').map(Number);
+if (nodeMajor < 22 || (nodeMajor === 22 && nodeMinor < 18)) {
+  console.error(
+    `[karkhana] Node ${process.versions.node} is too old — 22.18+ is required for\n` +
+      `           TypeScript type stripping. Upgrade Node, or start with:\n` +
+      `           node --experimental-strip-types server/index.mjs`,
+  );
+  process.exit(1);
+}
+
+// Resolved from this file rather than cwd, so the server works when launched
+// from anywhere — a launchd or systemd unit starts in `/`.
+const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = process.env.KARKHANA_HOST ?? '127.0.0.1';
 const port = Number(process.env.PORT ?? 3000);
 
-const app = next({ dev, hostname, port });
+// `next start` refuses to run without a build; we own the server, so we check.
+if (!dev && !existsSync(path.join(appRoot, '.next', 'BUILD_ID'))) {
+  console.error('[karkhana] no production build found in .next — run `npm run build` first.');
+  process.exit(1);
+}
+
+const app = next({ dev, hostname, port, dir: appRoot });
 const handle = app.getRequestHandler();
 
 await app.prepare();
