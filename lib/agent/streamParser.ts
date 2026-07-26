@@ -105,11 +105,11 @@ export function normalizeEvent(event: RawEvent): RawEvent | null {
   if (subtype && NOISE_SUBTYPES.has(subtype)) return null;
 
   if (type === 'system' && subtype === 'init') {
-    const compact: RawEvent = {};
+    const compact: Record<string, unknown> = {};
     for (const key of INIT_KEEP) {
       if (key in event) compact[key] = event[key];
     }
-    return compact;
+    return compact as RawEvent;
   }
 
   let normalized = stripSignatures(event) as RawEvent;

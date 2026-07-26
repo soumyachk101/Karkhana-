@@ -9,7 +9,8 @@
     "start": "NODE_ENV=production node server/index.mjs",
     "wt:test": "node --experimental-strip-types scripts/wt-test.mts",
     "agent:test": "node --experimental-strip-types scripts/agent-test.mts",
-    "db:reset": "rm -f karkhana.db karkhana.db-wal karkhana.db-shm"
+    "db:reset": "rm -f karkhana.db karkhana.db-wal karkhana.db-shm",
+    "e2e": "node --experimental-strip-types scripts/e2e-test.mts"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.1",

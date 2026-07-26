@@ -1,4 +1,5 @@
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { spawn, type ChildProcessByStdio } from 'node:child_process';
+import type { Readable } from 'node:stream';
 import path from 'node:path';
 import { checkClaudeBinary, getConfig } from '../config.ts';
 import { publish } from '../bus.ts';
@@ -91,7 +92,9 @@ export function runAgent(
     args.push('--resume', task.session_id);
   }
 
-  let child: ChildProcessWithoutNullStreams;
+  // stdin is 'ignore': a headless agent that tries to prompt should get EOF
+  // rather than hang forever waiting on a terminal nobody is watching.
+  let child: ChildProcessByStdio<null, Readable, Readable>;
   try {
     child = spawn(claudeBinPath, args, {
       cwd,
