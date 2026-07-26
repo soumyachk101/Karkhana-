@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { Icon } from './ui/icons.tsx';
+import { Badge, Button, ConfirmDialog, CopyButton, Modal } from './ui/primitives.tsx';
 
 export type OrphanWorktree = {
   path: string;
@@ -25,57 +27,96 @@ export function CleanupPanel({
   onRemove: (orphan: OrphanWorktree) => Promise<void>;
 }) {
   const [busy, setBusy] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<OrphanWorktree | null>(null);
+
+  const remove = async (orphan: OrphanWorktree) => {
+    setBusy(orphan.path);
+    try {
+      await onRemove(orphan);
+    } finally {
+      setBusy(null);
+    }
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 pt-24" onClick={onClose}>
-      <div
-        className="w-[640px] rounded-lg border border-ink-600 bg-ink-850 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+    <>
+      <Modal
+        title="Orphaned worktrees"
+        subtitle={`${orphans.length} left on disk with no task behind them`}
+        icon="alert"
+        onClose={onClose}
+        width="w-[680px]"
       >
-        <div className="flex items-center justify-between border-b border-ink-700 px-3 py-2">
-          <span className="text-[12px] font-medium text-ink-100">Orphaned worktrees</span>
-          <button onClick={onClose} className="rounded px-1.5 text-ink-400 hover:bg-ink-700 hover:text-ink-100">
-            ×
-          </button>
-        </div>
-
-        <p className="border-b border-ink-700 px-3 py-2 text-[11px] leading-relaxed text-ink-400">
-          These worktrees exist on disk but have no task behind them — usually left by a crash or a
-          deleted task. They are never removed automatically because they may hold the only copy of an
-          agent&apos;s work. Inspect the path before removing.
+        <p className="border-b border-ink-700 px-3.5 py-2.5 text-[11.5px] leading-relaxed text-ink-400">
+          These usually come from a crash or a deleted task. They are never removed automatically
+          because a worktree may hold the only copy of an agent&apos;s work — open the path and look
+          before you delete it.
         </p>
 
-        <ul className="max-h-80 overflow-y-auto">
+        <ul>
           {orphans.map((orphan) => (
-            <li key={orphan.path} className="flex items-center gap-2 border-b border-ink-800 px-3 py-2">
+            <li
+              key={orphan.path}
+              className="flex items-center gap-2.5 border-b border-ink-800 px-3.5 py-2.5 last:border-b-0"
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-warn/12 text-warn">
+                <Icon name="folder" size={14} />
+              </span>
               <div className="min-w-0 flex-1">
-                <p className="truncate font-mono text-[11px] text-ink-100">{orphan.path}</p>
-                <p className="mt-0.5 font-mono text-[10px] text-ink-400">
-                  {orphan.projectName} · {orphan.branch ?? 'no branch'} · {orphan.reason}
+                <p className="truncate font-mono text-[11.5px] text-ink-100">{orphan.path}</p>
+                <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[10px] text-ink-400">
+                  <span>{orphan.projectName}</span>
+                  <span className="text-ink-600">·</span>
+                  <span>{orphan.branch ?? 'no branch'}</span>
+                  <span className="text-ink-600">·</span>
+                  <span>{orphan.reason}</span>
                 </p>
               </div>
-              <button
-                onClick={async () => {
-                  if (!confirm(`Remove ${orphan.path} and its branch? This cannot be undone.`)) return;
-                  setBusy(orphan.path);
-                  try {
-                    await onRemove(orphan);
-                  } finally {
-                    setBusy(null);
-                  }
-                }}
-                disabled={busy === orphan.path}
-                className="shrink-0 rounded border border-red-500/40 bg-red-500/10 px-2 py-0.5 text-[11px] text-red-300 hover:bg-red-500/20 disabled:opacity-50"
+              <CopyButton text={orphan.path} title="Copy path" size="xs" />
+              <Button
+                tone="danger"
+                size="xs"
+                icon="trash"
+                busy={busy === orphan.path}
+                onClick={() => setConfirming(orphan)}
               >
-                {busy === orphan.path ? '…' : 'Remove'}
-              </button>
+                Remove
+              </Button>
             </li>
           ))}
+
           {orphans.length === 0 && (
-            <li className="px-3 py-6 text-center text-[11px] text-ink-500">Nothing left to clean up.</li>
+            <li className="flex flex-col items-center gap-2 px-3.5 py-10 text-center">
+              <Badge tone="ok">
+                <Icon name="check" size={10} />
+                clean
+              </Badge>
+              <p className="text-[11.5px] text-ink-500">Nothing left to clean up.</p>
+            </li>
           )}
         </ul>
-      </div>
-    </div>
+      </Modal>
+
+      {confirming && (
+        <ConfirmDialog
+          title="Remove this worktree?"
+          confirmLabel="Remove permanently"
+          body={
+            <>
+              <p>
+                <span className="font-mono text-ink-100">{confirming.path}</span> and its branch{' '}
+                <span className="font-mono text-ink-100">{confirming.branch ?? '—'}</span> will be
+                deleted from disk.
+              </p>
+              <p className="mt-2 text-ink-400">
+                If an agent left work here that was never merged, this is where it disappears.
+              </p>
+            </>
+          }
+          onConfirm={() => void remove(confirming)}
+          onClose={() => setConfirming(null)}
+        />
+      )}
+    </>
   );
 }

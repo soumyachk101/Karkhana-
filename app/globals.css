@@ -1,24 +1,128 @@
 @import 'tailwindcss';
 
-@theme {
-  --color-ink-900: #0a0c0f;
-  --color-ink-850: #0e1116;
-  --color-ink-800: #13171d;
-  --color-ink-700: #191e26;
-  --color-ink-600: #232a34;
-  --color-ink-500: #313a47;
-  --color-ink-400: #4a5563;
-  --color-ink-300: #6b7686;
-  --color-ink-200: #97a1af;
-  --color-ink-100: #ced4dc;
-  --color-ink-50: #eef1f5;
+/* ---------------------------------------------------------------------------
+ * Theme tokens
+ *
+ * Two palettes live here — a warm "paper" light theme and a warm charcoal dark
+ * theme, both in the same key as Claude's own surfaces. Components never touch
+ * these raw variables: they are aliased into the Tailwind `ink-*` / accent
+ * scales below, so a single `data-theme` flip on <html> re-skins the whole app
+ * without a single conditional class in a component.
+ *
+ * The scale is intentionally inverted between themes — `ink-900` is always the
+ * furthest surface from the reader and `ink-50` is always the strongest text,
+ * whichever way round the actual luminance runs.
+ * ------------------------------------------------------------------------- */
 
-  --color-forge-500: #f59e0b;
-  --color-forge-400: #fbbf24;
-  --color-forge-600: #d97706;
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
 
-  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+  --k-900: #17171a;
+  --k-850: #1c1c20;
+  --k-800: #222227;
+  --k-750: #282830;
+  --k-700: #303039;
+  --k-600: #3d3d48;
+  --k-500: #55555f;
+  --k-400: #7e7e8c;
+  --k-300: #a1a1ae;
+  --k-200: #c3c3cd;
+  --k-100: #e3e3e9;
+  --k-50: #fafaf7;
+
+  --k-accent-600: #c2603f;
+  --k-accent-500: #d97757;
+  --k-accent-400: #e79173;
+  --k-accent-soft: #d9775726;
+
+  --k-ok: #4ade80;
+  --k-warn: #fbbf24;
+  --k-danger: #f87171;
+  --k-info: #60a5fa;
+  --k-review: #c084fc;
+
+  --k-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --k-shadow-md: 0 4px 16px -4px rgb(0 0 0 / 0.5);
+  --k-shadow-lg: 0 24px 60px -12px rgb(0 0 0 / 0.65), 0 0 0 1px rgb(255 255 255 / 0.04);
+  --k-glass: color-mix(in oklab, var(--k-850) 78%, transparent);
+  --k-grid: rgb(255 255 255 / 0.022);
+  --k-hairline: rgb(255 255 255 / 0.06);
 }
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --k-900: #faf9f5;
+  --k-850: #f4f2ec;
+  --k-800: #ffffff;
+  --k-750: #f0eee7;
+  --k-700: #e6e3da;
+  --k-600: #d8d4c9;
+  --k-500: #b6b1a4;
+  --k-400: #7d786c;
+  --k-300: #5f5a50;
+  --k-200: #46423a;
+  --k-100: #2b2823;
+  --k-50: #14120f;
+
+  --k-accent-600: #bd5a39;
+  --k-accent-500: #cc6a48;
+  --k-accent-400: #b4522f;
+  --k-accent-soft: #cc6a4820;
+
+  --k-ok: #15803d;
+  --k-warn: #b45309;
+  --k-danger: #dc2626;
+  --k-info: #1d4ed8;
+  --k-review: #7c3aed;
+
+  --k-shadow-sm: 0 1px 2px rgb(60 50 30 / 0.06);
+  --k-shadow-md: 0 4px 16px -4px rgb(60 50 30 / 0.12);
+  --k-shadow-lg: 0 24px 60px -12px rgb(60 50 30 / 0.18), 0 0 0 1px rgb(0 0 0 / 0.04);
+  --k-glass: color-mix(in oklab, var(--k-850) 82%, transparent);
+  --k-grid: rgb(0 0 0 / 0.02);
+  --k-hairline: rgb(0 0 0 / 0.05);
+}
+
+@theme {
+  --color-ink-900: var(--k-900);
+  --color-ink-850: var(--k-850);
+  --color-ink-800: var(--k-800);
+  --color-ink-750: var(--k-750);
+  --color-ink-700: var(--k-700);
+  --color-ink-600: var(--k-600);
+  --color-ink-500: var(--k-500);
+  --color-ink-400: var(--k-400);
+  --color-ink-300: var(--k-300);
+  --color-ink-200: var(--k-200);
+  --color-ink-100: var(--k-100);
+  --color-ink-50: var(--k-50);
+
+  --color-forge-600: var(--k-accent-600);
+  --color-forge-500: var(--k-accent-500);
+  --color-forge-400: var(--k-accent-400);
+
+  --color-ok: var(--k-ok);
+  --color-warn: var(--k-warn);
+  --color-danger: var(--k-danger);
+  --color-info: var(--k-info);
+  --color-review: var(--k-review);
+
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', 'Fira Code', Menlo, monospace;
+  --font-sans:
+    ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial,
+    sans-serif;
+  --font-serif: ui-serif, 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 9px;
+  --radius-lg: 13px;
+  --radius-xl: 18px;
+}
+
+/* --- base ---------------------------------------------------------------- */
 
 html,
 body {
@@ -26,41 +130,310 @@ body {
 }
 
 body {
-  background: var(--color-ink-900);
+  background-color: var(--color-ink-900);
+  /* A barely-there grid — reads as texture rather than decoration, and keeps
+     large empty panes from looking like a rendering failure. */
+  background-image:
+    linear-gradient(var(--k-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--k-grid) 1px, transparent 1px);
+  background-size: 44px 44px;
   color: var(--color-ink-100);
+  font-family: var(--font-sans);
   font-size: 13px;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Dense, dark scrollbars — this UI is mostly scrolling log panes. */
+::selection {
+  background: color-mix(in oklab, var(--color-forge-500) 32%, transparent);
+  color: var(--color-ink-50);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--color-forge-500) 70%, transparent);
+  outline-offset: 1px;
+  border-radius: 4px;
+}
+
+/* Text fields already signal focus by changing their border, and a ring on top
+   of that reads as an error state — especially on the autofocused prompt box. */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+}
+
+/* Dense, theme-aware scrollbars — this UI is mostly scrolling log panes. */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--color-ink-600) transparent;
 }
 *::-webkit-scrollbar {
-  width: 9px;
-  height: 9px;
+  width: 10px;
+  height: 10px;
 }
 *::-webkit-scrollbar-thumb {
   background: var(--color-ink-600);
-  border-radius: 5px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 8px;
 }
 *::-webkit-scrollbar-thumb:hover {
   background: var(--color-ink-500);
+  background-clip: content-box;
 }
+*::-webkit-scrollbar-corner,
 *::-webkit-scrollbar-track {
   background: transparent;
 }
 
-@keyframes karkhana-pulse {
+/* --- motion -------------------------------------------------------------- */
+
+@keyframes k-pulse {
   0%,
   100% {
     opacity: 1;
   }
   50% {
-    opacity: 0.35;
+    opacity: 0.3;
   }
 }
+@keyframes k-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes k-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes k-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes k-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+@keyframes k-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(320%);
+  }
+}
+@keyframes k-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes k-blink {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  55%,
+  100% {
+    opacity: 0;
+  }
+}
+
 .animate-live {
-  animation: karkhana-pulse 1.4s ease-in-out infinite;
+  animation: k-pulse 1.5s ease-in-out infinite;
+}
+.animate-rise {
+  animation: k-rise 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-pop {
+  animation: k-pop 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-fade {
+  animation: k-fade 0.16s ease-out both;
+}
+.animate-caret {
+  animation: k-blink 1.05s steps(1) infinite;
+}
+.animate-spin-slow {
+  animation: k-spin 0.85s linear infinite;
+}
+
+/* Indeterminate progress rail for a running agent. */
+.rail {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in oklab, var(--color-forge-500) 16%, transparent);
+}
+.rail::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 30%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-forge-500),
+    color-mix(in oklab, var(--color-forge-400) 60%, transparent),
+    transparent
+  );
+  animation: k-sweep 1.5s ease-in-out infinite;
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-ink-800) 25%,
+    var(--color-ink-700) 37%,
+    var(--color-ink-800) 63%
+  );
+  background-size: 200% 100%;
+  animation: k-shimmer 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* --- surfaces ------------------------------------------------------------ */
+
+.glass {
+  background: var(--k-glass);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+}
+
+.hairline {
+  box-shadow: inset 0 1px 0 var(--k-hairline);
+}
+
+.shadow-card {
+  box-shadow: var(--k-shadow-sm);
+}
+.shadow-pop {
+  box-shadow: var(--k-shadow-md);
+}
+.shadow-float {
+  box-shadow: var(--k-shadow-lg);
+}
+
+/* Accent wash used behind the brand mark and empty states. */
+.aurora {
+  background-image:
+    radial-gradient(
+      60% 90% at 12% 0%,
+      color-mix(in oklab, var(--color-forge-500) 13%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      50% 80% at 88% 10%,
+      color-mix(in oklab, var(--color-review) 10%, transparent),
+      transparent 70%
+    );
+}
+
+/* Fades the top edge of a scrolling pane so content dissolves under headers. */
+.scroll-top-fade {
+  mask-image: linear-gradient(to bottom, transparent, black 14px);
+}
+
+/* --- syntax highlighting (see lib/highlight.ts) --------------------------- */
+
+.tok-key {
+  color: var(--color-review);
+}
+.tok-str {
+  color: var(--color-ok);
+}
+.tok-num {
+  color: var(--color-forge-400);
+}
+.tok-com {
+  color: var(--color-ink-400);
+  font-style: italic;
+}
+.tok-fn {
+  color: var(--color-info);
+}
+.tok-typ {
+  color: var(--color-warn);
+}
+.tok-op {
+  color: var(--color-ink-300);
+}
+.tok-var {
+  color: var(--color-ink-100);
+}
+
+/* --- ANSI (see lib/ansi.ts) ---------------------------------------------- */
+
+.ansi-black {
+  color: var(--color-ink-500);
+}
+.ansi-red {
+  color: var(--color-danger);
+}
+.ansi-green {
+  color: var(--color-ok);
+}
+.ansi-yellow {
+  color: var(--color-warn);
+}
+.ansi-blue {
+  color: var(--color-info);
+}
+.ansi-magenta {
+  color: var(--color-review);
+}
+.ansi-cyan {
+  color: #22d3ee;
+}
+.ansi-white {
+  color: var(--color-ink-100);
+}
+.ansi-dim {
+  opacity: 0.62;
+}
+.ansi-bold {
+  font-weight: 600;
 }

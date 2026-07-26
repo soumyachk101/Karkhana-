@@ -153,6 +153,14 @@ captures it from the first frame that has one rather than waiting for
 `system/init`. That matters because a run that dies mid-flight is only resumable
 if the id was already persisted.
 
+### The prompt is recorded on every run
+
+The `spawned`/`resumed` lifecycle event carries `prompt`. A resume overwrites
+`task.prompt` in the database, so without this the follow-up instruction that
+produced a given run would be unrecoverable afterwards — and the chat view would
+have no user turns to show. Tasks created before this existed fall back to
+`task.prompt` for the opening bubble.
+
 ## Data flow
 
 ```
@@ -206,21 +214,69 @@ lib/worktree.ts           create/diff/commit/merge/remove/orphan-scan
 lib/bus.ts                in-process pub/sub
 lib/boot.ts               restart reconciliation
 lib/wsServer.ts           /ws, per-connection subscriptions, replay-then-live
-lib/format.ts             client-safe event → log line rendering
+lib/format.ts             client-safe event → log lines + chat transcript
+lib/markdown.ts           client-safe Markdown → data (never HTML)
+lib/highlight.ts          client-safe tokenizer behind the `tok-*` classes
+lib/ansi.ts               client-safe SGR parser for the terminal pane
+lib/theme.ts              client-safe theme read/apply + pre-paint boot script
+lib/exec.ts               one-shot `bash -lc` in a worktree, for the terminal
 lib/api.ts                JSON response + error wrapper for route handlers
 lib/repo/{projects,tasks,events}.ts
 lib/agent/streamParser.ts NDJSON split + noise filter
 lib/agent/runner.ts       spawn, stream, persist, cancel
 lib/agent/orchestrator.ts queue, concurrency gate, retry/resume/merge/discard
 app/                      App Router UI + /api routes
+app/components/ui/        icons, primitives, toasts, code block
 hooks/useSocket.ts        one reconnecting WebSocket for the app
 scripts/wt-test.mts       worktree isolation + merge
 scripts/agent-test.mts    one agent end to end
 scripts/e2e-test.mts      HTTP + WebSocket, two agents on one repo
 ```
 
-`lib/format.ts` is imported by client components, so it must stay free of node
-builtins. Everything else in `lib/` is server-only.
+`lib/format.ts`, `markdown.ts`, `highlight.ts`, `ansi.ts`, and `theme.ts` are
+imported by client components, so they must stay free of node builtins.
+Everything else in `lib/` is server-only.
+
+## UI
+
+### Theming
+
+`app/globals.css` defines two palettes as raw `--k-*` variables — a warm paper
+light theme and a warm charcoal dark theme — and aliases them into the Tailwind
+scale inside `@theme` (`--color-ink-900: var(--k-900)`). The scale is *inverted*
+between themes: `ink-900` is always the furthest surface from the reader and
+`ink-50` is always the strongest text. That is what lets a single `data-theme`
+flip on `<html>` re-skin everything with no conditional classes in components.
+
+The theme is applied by `THEME_BOOT_SCRIPT` in the document head, before first
+paint. Without it a reload flashes the dark palette at light-theme users.
+
+### The two views of a run
+
+The same event stream is rendered twice, deliberately:
+
+- **Conversation** (`ChatTranscript.tsx`) — the run as a conversation. Assistant
+  text goes through the Markdown renderer, thinking collapses behind a summary,
+  and each `tool_use` becomes a card. `buildTranscript()` in `lib/format.ts`
+  does the one thing the flat log cannot: a `tool_use` block and the
+  `tool_result` that answers it arrive in *different* events, so they are
+  stitched back together by `tool_use_id`.
+- **Terminal** (`Terminal.tsx`) — the stream as it arrived, one row per physical
+  line, with ANSI colour, search, kind filters, wrapping and timestamp toggles,
+  and download.
+
+Markdown and highlighting produce React nodes, never HTML strings — there is no
+path from agent output to `dangerouslySetInnerHTML`.
+
+### The terminal prompt
+
+`POST /api/tasks/:id/exec` runs a command through `bash -lc` **in the task's
+worktree** and returns its captured output. It is not a pty: stdin is closed,
+no state carries between commands, the process group is killed after 30s, and
+output is capped at 256KB. Karkhana is localhost-only and the agents it spawns
+already have Bash in the same directory, so this adds no reach the dashboard did
+not already have — but it is the one route that runs arbitrary user input, so
+keep the worktree check in the handler.
 
 ## Harnesses
 

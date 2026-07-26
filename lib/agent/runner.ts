@@ -120,6 +120,10 @@ export function runAgent(
     model: task.model,
     binary: claudeBinPath,
     resumedSession: opts.resume ? task.session_id : undefined,
+    // The prompt is what the chat view renders as the opening user turn. A
+    // resume overwrites `task.prompt`, so without this the follow-up
+    // instruction that produced a run would be unrecoverable afterwards.
+    prompt: task.prompt,
   });
 
   const parser = new StreamJsonParser();

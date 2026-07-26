@@ -1,6 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import type { Theme } from '@/lib/theme';
+import { BrandMark, Icon } from './ui/icons.tsx';
+import { IconButton, Kbd } from './ui/primitives.tsx';
 
 type Props = {
   running: number;
@@ -10,9 +13,30 @@ type Props = {
   binaryOk: boolean;
   binaryReason?: string;
   orphanCount: number;
+  theme: Theme;
+  onToggleTheme: () => void;
   onChangeLimit: (limit: number) => void;
   onShowCleanup: () => void;
+  onOpenPalette: () => void;
 };
+
+/** One pip per concurrency slot — capacity at a glance, no arithmetic. */
+function CapacityMeter({ running, limit }: { running: number; limit: number }) {
+  const pips = Array.from({ length: Math.min(limit, 16) }, (_, i) => i < running);
+  return (
+    <span className="flex items-center gap-[3px]">
+      {pips.map((filled, i) => (
+        <span
+          key={i}
+          className={`h-3 w-[3px] rounded-full ${
+            filled ? 'animate-live bg-forge-500' : 'bg-ink-600'
+          }`}
+          style={filled ? { animationDelay: `${i * 0.12}s` } : undefined}
+        />
+      ))}
+    </span>
+  );
+}
 
 export function TopBar({
   running,
@@ -22,26 +46,35 @@ export function TopBar({
   binaryOk,
   binaryReason,
   orphanCount,
+  theme,
+  onToggleTheme,
   onChangeLimit,
   onShowCleanup,
+  onOpenPalette,
 }: Props) {
   const [editing, setEditing] = useState(false);
   const atCapacity = running >= limit && limit > 0;
 
   return (
-    <header className="flex h-11 shrink-0 items-center gap-4 border-b border-ink-700 bg-ink-850 px-4">
-      <div className="flex items-baseline gap-2">
-        <span className="text-[15px] font-semibold tracking-tight text-forge-500">Karkhana</span>
-        <span className="text-[11px] text-ink-400">कारख़ाना</span>
+    <header className="glass hairline z-30 flex h-12 shrink-0 items-center gap-3 border-b border-ink-700 px-3">
+      <div className="flex items-center gap-2">
+        <BrandMark size={20} />
+        <span className="font-serif text-[16px] font-semibold tracking-tight text-ink-50">
+          Karkhana
+        </span>
+        <span className="hidden text-[11px] text-ink-400 sm:inline">कारख़ाना</span>
       </div>
 
-      <div className="flex items-center gap-2 rounded border border-ink-600 bg-ink-800 px-2.5 py-1">
-        <span
-          className={`h-1.5 w-1.5 rounded-full ${running > 0 ? 'bg-forge-500 animate-live' : 'bg-ink-500'}`}
-        />
+      <span className="h-5 w-px bg-ink-700" />
+
+      <div
+        className="flex items-center gap-2 rounded-md border border-ink-700 bg-ink-800/70 px-2.5 py-1"
+        title="Agents running against the concurrency limit"
+      >
+        <CapacityMeter running={running} limit={limit} />
         <span className="text-[12px] tabular-nums">
-          <span className={atCapacity ? 'text-forge-400' : 'text-ink-100'}>{running}</span>
-          <span className="text-ink-400"> / </span>
+          <span className={atCapacity ? 'font-medium text-forge-500' : 'text-ink-100'}>{running}</span>
+          <span className="text-ink-500"> / </span>
           {editing ? (
             <input
               autoFocus
@@ -58,7 +91,7 @@ export function TopBar({
                 if (e.key === 'Enter') e.currentTarget.blur();
                 if (e.key === 'Escape') setEditing(false);
               }}
-              className="w-10 rounded bg-ink-700 px-1 text-center text-ink-50 outline-none"
+              className="w-11 rounded bg-ink-700 px-1 text-center text-ink-50 outline-none"
             />
           ) : (
             <button
@@ -70,39 +103,65 @@ export function TopBar({
             </button>
           )}
         </span>
-        <span className="text-[11px] text-ink-400">agents</span>
+        <span className="text-[10.5px] uppercase tracking-wider text-ink-500">agents</span>
       </div>
 
       {queued > 0 && (
-        <span className="text-[12px] text-ink-300">
+        <span className="flex items-center gap-1.5 rounded-md border border-ink-700 bg-ink-800/70 px-2 py-1 text-[11.5px] text-ink-300">
+          <Icon name="clock" size={12} className="text-ink-400" />
           <span className="tabular-nums text-ink-100">{queued}</span> queued
         </span>
       )}
 
       <div className="flex-1" />
 
+      <button
+        onClick={onOpenPalette}
+        className="hidden items-center gap-2 rounded-md border border-ink-700 bg-ink-800/70 py-1 pl-2 pr-1.5 text-[11.5px] text-ink-400 transition-colors hover:border-ink-500 hover:text-ink-100 md:flex"
+      >
+        <Icon name="search" size={13} />
+        <span>Search tasks…</span>
+        <span className="flex items-center gap-0.5">
+          <Kbd>⌘</Kbd>
+          <Kbd>K</Kbd>
+        </span>
+      </button>
+
       {orphanCount > 0 && (
         <button
           onClick={onShowCleanup}
-          className="rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-300 hover:bg-amber-500/20"
+          className="flex items-center gap-1.5 rounded-md border border-warn/40 bg-warn/10 px-2 py-1 text-[11px] text-warn transition-colors hover:bg-warn/20"
         >
+          <Icon name="alert" size={12} />
           {orphanCount} orphan worktree{orphanCount === 1 ? '' : 's'}
         </button>
       )}
 
       {!binaryOk && (
         <span
-          className="rounded border border-red-500/40 bg-red-500/10 px-2 py-1 text-[11px] text-red-300"
+          className="flex items-center gap-1.5 rounded-md border border-danger/40 bg-danger/10 px-2 py-1 text-[11px] text-danger"
           title={binaryReason}
         >
+          <Icon name="alert" size={12} />
           Claude binary not found
         </span>
       )}
 
-      <span className="flex items-center gap-1.5 text-[11px] text-ink-400" title={connected ? 'Live' : 'Reconnecting…'}>
-        <span className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-emerald-400' : 'bg-red-400 animate-live'}`} />
+      <span
+        className="flex items-center gap-1.5 rounded-md border border-ink-700 bg-ink-800/70 px-2 py-1 text-[11px] text-ink-400"
+        title={connected ? 'Live — streaming over the WebSocket' : 'Reconnecting…'}
+      >
+        <span
+          className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-ok' : 'animate-live bg-danger'}`}
+        />
         {connected ? 'live' : 'offline'}
       </span>
+
+      <IconButton
+        icon={theme === 'dark' ? 'sun' : 'moon'}
+        title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+        onClick={onToggleTheme}
+      />
     </header>
   );
 }
