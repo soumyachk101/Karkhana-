@@ -1,5 +1,6 @@
 import { publish } from '../bus.ts';
 import { getConfig } from '../config.ts';
+import { holder } from '../singleton.ts';
 import { appendEvent } from '../repo/events.ts';
 import { getProject } from '../repo/projects.ts';
 import {
@@ -17,9 +18,6 @@ import {
   type MergeResult,
 } from '../worktree.ts';
 import { runAgent, type RunHandle } from './runner.ts';
-
-// See lib/db.ts for why singletons are pinned to globalThis.
-const GLOBAL_KEY = Symbol.for('karkhana.orchestrator');
 
 type Pending = { taskId: string; resume: boolean };
 
@@ -298,7 +296,8 @@ class Orchestrator {
   }
 }
 
-type Holder = { orchestrator?: Orchestrator };
-const holder = ((globalThis as Record<symbol, unknown>)[GLOBAL_KEY] ??= {} as Holder) as Holder;
+// One orchestrator for the whole process: the queue and the live ChildProcess
+// handles must not be duplicated across module instances.
+const state = holder<{ orchestrator?: Orchestrator }>('orchestrator');
 
-export const orchestrator: Orchestrator = (holder.orchestrator ??= new Orchestrator());
+export const orchestrator: Orchestrator = (state.orchestrator ??= new Orchestrator());

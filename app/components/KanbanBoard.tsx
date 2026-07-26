@@ -22,7 +22,12 @@ export function KanbanBoard({ tasks, projects, showProject, selectedTaskId, onSe
         const style = STATUS_STYLE[status];
 
         return (
-          <section key={status} className="flex w-64 shrink-0 flex-col rounded border border-ink-700 bg-ink-850">
+          // Columns share the available width so all six statuses stay visible;
+          // below ~1400px they hit min-width and the row scrolls instead.
+          <section
+            key={status}
+            className="flex min-w-48 flex-1 flex-col rounded border border-ink-700 bg-ink-850"
+          >
             <header className="flex items-center gap-1.5 border-b border-ink-700 px-2 py-1.5">
               <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
               <span className={`text-[11px] font-medium ${style.text}`}>{STATUS_LABEL[status]}</span>

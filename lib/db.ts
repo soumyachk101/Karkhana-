@@ -3,13 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getConfig } from './config.ts';
+import { holder } from './singleton.ts';
 
-// Next's dev server re-evaluates modules on HMR, and the custom server imports
-// this module too. Cache on globalThis so we never end up with two SQLite
-// handles (or two orchestrators) fighting over the same file.
-const GLOBAL_KEY = Symbol.for('karkhana.db');
-type Holder = { db?: Database.Database };
-const holder = ((globalThis as Record<symbol, unknown>)[GLOBAL_KEY] ??= {} as Holder) as Holder;
+// See lib/singleton.ts: two module instances plus HMR means a module-level
+// `let` would give us several SQLite handles on one file.
+const state = holder<{ db?: Database.Database }>('db');
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
@@ -28,12 +26,12 @@ function open(): Database.Database {
 }
 
 export function getDb(): Database.Database {
-  return (holder.db ??= open());
+  return (state.db ??= open());
 }
 
 export function closeDb(): void {
-  holder.db?.close();
-  holder.db = undefined;
+  state.db?.close();
+  state.db = undefined;
 }
 
 /** Short, sortable, human-greppable ids: `t_ltz3k9x_4f2a`. */

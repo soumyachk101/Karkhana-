@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { holder } from './singleton.ts';
 
 export type KarkhanaConfig = {
   /** Absolute path to the Claude Code binary. Never assumed to be on PATH. */
@@ -56,10 +57,13 @@ function defaults(): KarkhanaConfig {
   };
 }
 
-let cached: KarkhanaConfig | null = null;
+// Shared, not module-scoped: the orchestrator reads `concurrency` from one
+// module instance while the PATCH /api/config route writes it from another, so
+// a per-module cache would leave a raised limit invisible until restart.
+const state = holder<{ config?: KarkhanaConfig }>('config');
 
 export function getConfig(): KarkhanaConfig {
-  if (cached) return cached;
+  if (state.config) return state.config;
 
   let onDisk: Partial<KarkhanaConfig> = {};
   if (fs.existsSync(CONFIG_PATH)) {
@@ -70,21 +74,22 @@ export function getConfig(): KarkhanaConfig {
     }
   }
 
-  cached = { ...defaults(), ...onDisk };
+  const config = { ...defaults(), ...onDisk };
+  state.config = config;
 
   // Write the resolved config back so the detected binary path is visible and
   // editable rather than being magic.
   if (!fs.existsSync(CONFIG_PATH)) {
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(cached, null, 2) + '\n');
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2) + '\n');
   }
-  return cached;
+  return config;
 }
 
 export function updateConfig(patch: Partial<KarkhanaConfig>): KarkhanaConfig {
   const next = { ...getConfig(), ...patch };
   if (next.concurrency < 1) next.concurrency = 1;
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(next, null, 2) + '\n');
-  cached = next;
+  state.config = next;
   return next;
 }
 

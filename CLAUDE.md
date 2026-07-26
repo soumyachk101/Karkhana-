@@ -5,6 +5,18 @@ across local git repos, including several agents on the same repo at once.
 
 Localhost only. No auth, no cloud, no Docker.
 
+## Quick start
+
+```bash
+npm install
+npm run dev            # http://localhost:3000, ws on the same port
+```
+
+First boot writes `karkhana.config.json` with an auto-detected `claudeBinPath`
+(`which claude`, then a list of common install locations). Edit it there if the
+top bar reports the binary as missing. `karkhana.db` is created alongside it.
+Both are gitignored — this is local state, not project state.
+
 ## Why there is a custom server
 
 `server/index.mjs` owns the `http.Server` and delegates to Next, rather than
@@ -19,9 +31,36 @@ Consequences:
 - Next runs in dev mode through the custom server; Turbopack is not used.
 - `better-sqlite3` is a native addon, so `next.config.mjs` lists it in
   `serverExternalPackages` — Next must `require()` it, not bundle it.
-- Next's dev HMR re-evaluates modules. The DB handle (`lib/db.ts`), the event bus
-  (`lib/bus.ts`), and the orchestrator (`lib/agent/orchestrator.ts`) are cached on
-  `globalThis` via `Symbol.for(...)` so we never end up with two of any of them.
+
+### `lib/` is loaded twice — never use module-level mutable state
+
+This is the single most important thing to know about this codebase.
+
+The custom server imports `lib/*.ts` through **Node's ESM loader**. Next's route
+handlers import the same files through the **webpack bundle**. Those are separate
+module instances in one process: a `let` at module scope exists twice, and each
+side sees only its own copy. Dev HMR gives a third way to get duplicates.
+
+Anything shared must live in a `holder()` from `lib/singleton.ts`, which stores
+it under a `Symbol.for()` key in the process-wide symbol registry:
+
+```ts
+const state = holder<{ db?: Database.Database }>('db');
+```
+
+Currently held that way: the DB handle, the event bus, the orchestrator, the
+resolved config, and the boot report.
+
+Two real bugs came from getting this wrong:
+- `boot.ts` kept its orphan report in a plain `let`. `boot()` filled it in on the
+  Node side; `GET /api/system` read it on the webpack side and always got `null`,
+  so orphaned worktrees never reached the UI.
+- `config.ts` cached the parsed config the same way, so `PATCH /api/config`
+  updated the webpack-side copy while the orchestrator kept reading the Node-side
+  one — a raised concurrency limit did nothing until restart.
+
+If you add shared state and it "works in the API but not in the server" (or vice
+versa), this is why.
 
 ### The custom server imports TypeScript directly
 
@@ -159,6 +198,7 @@ queued → running → needs_review → merged
 
 ```
 server/index.mjs          http + ws + Next, boot, graceful shutdown
+lib/singleton.ts          holder() — cross-module-instance shared state
 lib/config.ts             karkhana.config.json, binary detection
 lib/db.ts  schema.sql     SQLite singleton (WAL), idempotent schema
 lib/git.ts                promisified git exec
@@ -166,24 +206,44 @@ lib/worktree.ts           create/diff/commit/merge/remove/orphan-scan
 lib/bus.ts                in-process pub/sub
 lib/boot.ts               restart reconciliation
 lib/wsServer.ts           /ws, per-connection subscriptions, replay-then-live
+lib/format.ts             client-safe event → log line rendering
+lib/api.ts                JSON response + error wrapper for route handlers
 lib/repo/{projects,tasks,events}.ts
 lib/agent/streamParser.ts NDJSON split + noise filter
 lib/agent/runner.ts       spawn, stream, persist, cancel
 lib/agent/orchestrator.ts queue, concurrency gate, retry/resume/merge/discard
 app/                      App Router UI + /api routes
-scripts/wt-test.mts       M2 harness — worktree isolation + merge
-scripts/agent-test.mts    M3 harness — one agent end to end
+hooks/useSocket.ts        one reconnecting WebSocket for the app
+scripts/wt-test.mts       worktree isolation + merge
+scripts/agent-test.mts    one agent end to end
+scripts/e2e-test.mts      HTTP + WebSocket, two agents on one repo
 ```
+
+`lib/format.ts` is imported by client components, so it must stay free of node
+builtins. Everything else in `lib/` is server-only.
 
 ## Harnesses
 
-Both run without the web server, which makes them the fastest way to debug the
-backend:
+The first two run without the web server, which makes them the fastest way to
+debug the backend:
 
 ```
 npm run wt:test    -- <repoPath> [baseBranch] [--merge]
 npm run agent:test -- <repoPath> "<prompt>" [model] [--keep]
+npm run e2e        -- <repoPath> [baseUrl]        # needs `npm run dev` running
 ```
 
 `--merge` creates a real merge commit (and rolls it back). `--keep` leaves the
-worktree on disk to inspect.
+worktree on disk to inspect. The e2e harness dispatches two agents at the same
+repo and asserts their worktrees, branches, and diffs stay disjoint.
+
+## Gotchas worth knowing
+
+- The UI receives every new task twice — once from the `POST /api/tasks`
+  response, once from the WebSocket `status` frame, and the socket usually wins.
+  Client state upserts by id (`upsertTask` in `app/page.tsx`); a blind prepend
+  shows every task twice.
+- `orchestrator.drain()` is guarded against re-entry. Worktree creation is async,
+  so two overlapping calls could each see a free slot and start the same task.
+- `pkill -f server/index.mjs` matches its own command line. Use
+  `pgrep -f 'node server/index[.]mjs'`.

@@ -1,4 +1,5 @@
 import { publish } from './bus.ts';
+import { holder } from './singleton.ts';
 import { checkClaudeBinary, getConfig } from './config.ts';
 import { getDb } from './db.ts';
 import { appendEvent } from './repo/events.ts';
@@ -16,10 +17,14 @@ export type BootReport = {
 };
 
 // Orphan scan results, refreshed on boot and after each manual cleanup.
-let lastReport: BootReport | null = null;
+//
+// boot() runs in the custom server's module instance; GET /api/system reads
+// this from Next's. A module-level `let` here meant the route always saw null,
+// so orphaned worktrees never reached the UI.
+const state = holder<{ report?: BootReport | null }>('boot');
 
 export function getBootReport(): BootReport | null {
-  return lastReport;
+  return state.report ?? null;
 }
 
 /** True if a process with this pid is alive and reachable. */
@@ -105,7 +110,7 @@ export async function boot(): Promise<BootReport> {
   // 4. Re-admit whatever was still queued.
   report.requeued = orchestrator.requeuePersisted();
 
-  lastReport = report;
+  state.report = report;
 
   const { concurrency, claudeBinPath } = getConfig();
   console.log(
@@ -130,6 +135,6 @@ export async function rescanOrphans(): Promise<BootReport['orphanWorktrees']> {
       /* skip unreadable projects */
     }
   }
-  if (lastReport) lastReport.orphanWorktrees = found;
+  if (state.report) state.report.orphanWorktrees = found;
   return found;
 }

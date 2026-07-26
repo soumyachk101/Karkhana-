@@ -1,20 +1,20 @@
 import { EventEmitter } from 'node:events';
+import { holder } from './singleton.ts';
 import type { ServerFrame } from './types.ts';
 
-// Same globalThis-caching rationale as lib/db.ts: one bus per process, even
-// across Next's dev-time module re-evaluation.
-const GLOBAL_KEY = Symbol.for('karkhana.bus');
-type Holder = { bus?: EventEmitter };
-const holder = ((globalThis as Record<symbol, unknown>)[GLOBAL_KEY] ??= {} as Holder) as Holder;
+// One bus per process. The runner publishes from Next's module instance while
+// the WebSocket server subscribes from the custom server's — see
+// lib/singleton.ts for why that needs a shared holder.
+const state = holder<{ bus?: EventEmitter }>('bus');
 
 function emitter(): EventEmitter {
-  if (!holder.bus) {
-    holder.bus = new EventEmitter();
+  if (!state.bus) {
+    state.bus = new EventEmitter();
     // A dozen agents plus every open browser tab adds up; the default limit of
     // 10 would spam warnings.
-    holder.bus.setMaxListeners(0);
+    state.bus.setMaxListeners(0);
   }
-  return holder.bus;
+  return state.bus;
 }
 
 const CHANNEL = 'frame';
