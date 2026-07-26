@@ -13,21 +13,43 @@
   --color-ink-100: #ced4dc;
   --color-ink-50: #eef1f5;
 
+  --color-forge-700: #b45309;
+  --color-forge-600: #d97706;
   --color-forge-500: #f59e0b;
   --color-forge-400: #fbbf24;
-  --color-forge-600: #d97706;
 
+  /* Body copy is set in Public Sans — built for clarity at the small, dense
+     sizes this UI runs at. Space Grotesk is reserved for the wordmark and
+     titles: used with restraint, not applied to every label. */
+  --font-sans: var(--font-public-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-space-grotesk), var(--font-public-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
 }
 
+/* Hard containment at the root: this is an app shell, not a document — only
+   the panes that declare their own scroll region (log, diff, kanban columns)
+   should ever scroll. Without this, a CSS grid/flex child whose content
+   outgrows its track (its default min-height is `auto`, not 0) pushes the
+   whole page taller instead of scrolling internally, hiding the top bar and
+   sidebar behind the browser's own scroll. Belt-and-suspenders alongside
+   `min-h-0` on every nested flex/grid item that holds a scrollable pane. */
 html,
 body {
   height: 100%;
+  overflow: hidden;
 }
 
 body {
-  background: var(--color-ink-900);
+  /* A flat fill reads as a placeholder, not a product — a barely-there
+     ambient wash (warm from the forge, cool counter-light opposite) gives
+     the shell depth without ever competing with the actual UI on top. */
+  background:
+    radial-gradient(1100px circle at 12% -12%, color-mix(in oklab, var(--color-forge-600) 10%, transparent), transparent 60%),
+    radial-gradient(900px circle at 105% 0%, color-mix(in oklab, var(--color-ink-400) 18%, transparent), transparent 55%),
+    var(--color-ink-900);
+  background-attachment: fixed;
   color: var(--color-ink-100);
+  font-family: var(--font-sans);
   font-size: 13px;
   -webkit-font-smoothing: antialiased;
 }
@@ -61,6 +83,66 @@ body {
     opacity: 0.35;
   }
 }
-.animate-live {
-  animation: karkhana-pulse 1.4s ease-in-out infinite;
+
+/* The signature motif: a running task reads as a live ember, not a generic
+   blinking dot — a small glow that breathes, echoing work actually happening
+   inside the forge. Same duration as the opacity pulse so dots that combine
+   both (task cards) stay in sync. */
+@keyframes karkhana-ember {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-forge-500) 55%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 9px 2px color-mix(in oklab, var(--color-forge-500) 55%, transparent);
+  }
+}
+
+@keyframes karkhana-rise {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes karkhana-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes karkhana-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-live {
+    animation: karkhana-pulse 1.4s ease-in-out infinite;
+  }
+  .animate-ember {
+    animation: karkhana-ember 1.4s ease-in-out infinite;
+  }
+  .animate-rise {
+    animation: karkhana-rise 0.18s ease-out both;
+  }
+  .animate-pop {
+    animation: karkhana-pop 0.16s cubic-bezier(0.2, 0, 0, 1) both;
+  }
+  .animate-fade {
+    animation: karkhana-fade 0.15s ease-out both;
+  }
 }

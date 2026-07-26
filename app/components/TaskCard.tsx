@@ -18,13 +18,15 @@ export function TaskCard({ task, project, showProject, selected, onClick }: Prop
   return (
     <button
       onClick={onClick}
-      className={`w-full rounded border bg-ink-800 p-2 text-left transition-colors hover:border-ink-500 ${
-        selected ? 'border-forge-600 bg-ink-700' : style.border
+      className={`animate-rise w-full rounded-md border bg-gradient-to-b from-ink-800 to-ink-800/70 p-2 text-left outline-none transition hover:-translate-y-px hover:border-ink-500 hover:shadow-[0_4px_12px_-4px_rgba(0,0,0,0.5)] focus-visible:ring-2 focus-visible:ring-forge-500/60 active:scale-[0.99] active:translate-y-0 ${
+        selected
+          ? 'border-forge-600 bg-gradient-to-b from-ink-700 to-ink-700/80 shadow-[0_0_0_1px_rgba(245,158,11,0.15),0_4px_12px_-4px_rgba(0,0,0,0.5)]'
+          : style.border
       }`}
     >
       <div className="mb-1 flex items-start gap-1.5">
         <span
-          className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${style.dot} ${isRunning ? 'animate-live' : ''}`}
+          className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${style.dot} ${isRunning ? 'animate-live animate-ember' : ''}`}
         />
         <span className="line-clamp-2 text-[12px] leading-snug text-ink-100">{task.title}</span>
       </div>

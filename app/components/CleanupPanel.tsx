@@ -1,5 +1,6 @@
 'use client';
 
+import { FolderX, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 
 export type OrphanWorktree = {
@@ -27,15 +28,24 @@ export function CleanupPanel({
   const [busy, setBusy] = useState<string | null>(null);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 pt-24" onClick={onClose}>
+    <div
+      className="animate-fade fixed inset-0 z-50 flex items-start justify-center bg-black/70 pt-24 backdrop-blur-sm"
+      onClick={onClose}
+    >
       <div
-        className="w-[640px] rounded-lg border border-ink-600 bg-ink-850 shadow-2xl"
+        className="animate-pop w-[640px] rounded-xl border border-ink-600 bg-gradient-to-b from-ink-800 to-ink-850 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_24px_48px_-12px_rgba(0,0,0,0.7)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-ink-700 px-3 py-2">
-          <span className="text-[12px] font-medium text-ink-100">Orphaned worktrees</span>
-          <button onClick={onClose} className="rounded px-1.5 text-ink-400 hover:bg-ink-700 hover:text-ink-100">
-            ×
+        <div className="flex items-center justify-between border-b border-ink-700 px-3.5 py-2.5">
+          <span className="font-display flex items-center gap-1.5 text-[13px] font-medium text-ink-100">
+            <FolderX className="h-3.5 w-3.5 text-amber-400" strokeWidth={2} />
+            Orphaned worktrees
+          </span>
+          <button
+            onClick={onClose}
+            className="rounded p-1 text-ink-400 outline-none transition-colors hover:bg-ink-700 hover:text-ink-100 focus-visible:ring-2 focus-visible:ring-forge-500/60"
+          >
+            <X className="h-3.5 w-3.5" strokeWidth={2.25} />
           </button>
         </div>
 
@@ -65,9 +75,16 @@ export function CleanupPanel({
                   }
                 }}
                 disabled={busy === orphan.path}
-                className="shrink-0 rounded border border-red-500/40 bg-red-500/10 px-2 py-0.5 text-[11px] text-red-300 hover:bg-red-500/20 disabled:opacity-50"
+                className="flex shrink-0 items-center gap-1 rounded-md border border-red-500/40 bg-red-500/10 px-2 py-1 text-[11px] text-red-300 outline-none transition hover:bg-red-500/20 focus-visible:ring-2 focus-visible:ring-red-400/60 active:scale-[0.97] disabled:opacity-50 disabled:active:scale-100"
               >
-                {busy === orphan.path ? '…' : 'Remove'}
+                {busy === orphan.path ? (
+                  '…'
+                ) : (
+                  <>
+                    <Trash2 className="h-3 w-3" strokeWidth={2.25} />
+                    Remove
+                  </>
+                )}
               </button>
             </li>
           ))}

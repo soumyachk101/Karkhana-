@@ -1,5 +1,6 @@
 'use client';
 
+import { Plus } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSocket } from '@/hooks/useSocket';
 import type { Model, Project, ServerFrame, Task, TaskEvent } from '@/lib/types';
@@ -231,7 +232,7 @@ export default function Page() {
         />
 
         <main className="flex min-w-0 flex-1 flex-col">
-          <div className="flex h-9 shrink-0 items-center gap-2 border-b border-ink-700 bg-ink-850 px-3">
+          <div className="flex h-10 shrink-0 items-center gap-2 border-b border-ink-700/80 bg-ink-850 px-3">
             <span className="text-[12px] text-ink-200">
               {selectedProjectId ? projects.find((p) => p.id === selectedProjectId)?.name : 'All projects'}
             </span>
@@ -240,10 +241,11 @@ export default function Page() {
             <button
               onClick={() => setShowNewTask(true)}
               disabled={projects.length === 0}
-              className="rounded bg-forge-600 px-2.5 py-1 text-[11px] font-medium text-ink-900 hover:bg-forge-500 disabled:opacity-40"
+              className="flex items-center gap-1 rounded-md border border-forge-600 bg-gradient-to-b from-forge-500 to-forge-600 px-2.5 py-1.5 text-[11px] font-medium text-ink-900 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.25),0_2px_8px_-2px_rgba(217,119,6,0.5)] outline-none transition hover:from-forge-400 hover:to-forge-500 focus-visible:ring-2 focus-visible:ring-forge-400/70 active:scale-[0.97] disabled:opacity-40 disabled:active:scale-100"
               title="New task (n)"
             >
-              + New task
+              <Plus className="h-3 w-3" strokeWidth={2.5} />
+              New task
             </button>
           </div>
 

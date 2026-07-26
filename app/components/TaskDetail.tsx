@@ -1,5 +1,6 @@
 'use client';
 
+import { GitMerge, Play, RotateCcw, Trash2, Upload, X, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { STATUS_LABEL, STATUS_STYLE, duration } from '@/lib/format';
 import { MODELS, type Model, type Project, type Task, type TaskEvent } from '@/lib/types';
@@ -65,9 +66,9 @@ export function TaskDetail({ task, project, events, onClose, onAction }: Props) 
       {/* header */}
       <div className="shrink-0 border-b border-ink-700 bg-ink-850 px-3 py-2">
         <div className="flex items-start gap-2">
-          <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${style.dot} ${isRunning ? 'animate-live' : ''}`} />
+          <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${style.dot} ${isRunning ? 'animate-live animate-ember' : ''}`} />
           <div className="min-w-0 flex-1">
-            <h2 className="truncate text-[13px] text-ink-50">{task.title}</h2>
+            <h2 className="font-display truncate text-[14px] font-medium tracking-tight text-ink-50">{task.title}</h2>
             <div className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 font-mono text-[10px] text-ink-400">
               <span className={style.text}>{STATUS_LABEL[task.status]}</span>
               {project && <span>{project.name}</span>}
@@ -80,28 +81,28 @@ export function TaskDetail({ task, project, events, onClose, onAction }: Props) 
           </div>
           <button
             onClick={onClose}
-            className="shrink-0 rounded px-1.5 py-0.5 text-ink-400 hover:bg-ink-700 hover:text-ink-100"
+            className="shrink-0 rounded p-1 text-ink-400 outline-none transition-colors hover:bg-ink-700 hover:text-ink-100 focus-visible:ring-2 focus-visible:ring-forge-500/60"
             title="Close (Esc)"
           >
-            ×
+            <X className="h-3.5 w-3.5" strokeWidth={2.25} />
           </button>
         </div>
 
         {/* actions */}
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
           {(isRunning || isQueued) && (
-            <ActionButton onClick={() => run('cancel')} busy={busy === 'cancel'} tone="danger">
+            <ActionButton onClick={() => run('cancel')} busy={busy === 'cancel'} tone="danger" icon={XCircle}>
               Cancel
             </ActionButton>
           )}
 
           {!isRunning && !isQueued && (
             <>
-              <ActionButton onClick={() => run('retry')} busy={busy === 'retry'}>
+              <ActionButton onClick={() => run('retry')} busy={busy === 'retry'} icon={RotateCcw}>
                 Retry
               </ActionButton>
               {task.session_id && hasWorktree && (
-                <ActionButton onClick={() => setShowResume((v) => !v)} busy={false}>
+                <ActionButton onClick={() => setShowResume((v) => !v)} busy={false} icon={Play}>
                   Resume
                 </ActionButton>
               )}
@@ -111,7 +112,7 @@ export function TaskDetail({ task, project, events, onClose, onAction }: Props) 
           {canReview && hasWorktree && (
             <>
               <div className="mx-1 h-4 w-px bg-ink-600" />
-              <ActionButton onClick={() => run('merge')} busy={busy === 'merge'} tone="primary">
+              <ActionButton onClick={() => run('merge')} busy={busy === 'merge'} tone="primary" icon={GitMerge}>
                 Merge to {project?.base_branch ?? 'base'}
               </ActionButton>
               <ActionButton
@@ -120,6 +121,7 @@ export function TaskDetail({ task, project, events, onClose, onAction }: Props) 
                 }}
                 busy={busy === 'discard'}
                 tone="danger"
+                icon={Trash2}
               >
                 Discard
               </ActionButton>
@@ -137,6 +139,7 @@ export function TaskDetail({ task, project, events, onClose, onAction }: Props) 
                 }}
                 busy={busy === 'push'}
                 tone="primary"
+                icon={Upload}
               >
                 Push to origin
               </ActionButton>
@@ -153,7 +156,7 @@ export function TaskDetail({ task, project, events, onClose, onAction }: Props) 
                   onClick={() => run('retry', { model: m })}
                   disabled={busy !== null}
                   title={`Retry with ${m}`}
-                  className={`px-2 py-0.5 text-[10px] capitalize disabled:opacity-40 ${
+                  className={`px-2 py-0.5 text-[10px] capitalize outline-none transition-colors focus-visible:ring-2 focus-visible:ring-forge-500/60 disabled:opacity-40 ${
                     task.model === m ? 'bg-forge-600 text-ink-900' : 'bg-ink-900 text-ink-300 hover:bg-ink-700'
                   }`}
                 >
@@ -172,7 +175,7 @@ export function TaskDetail({ task, project, events, onClose, onAction }: Props) 
               onChange={(e) => setResumePrompt(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && run('resume', { prompt: resumePrompt })}
               placeholder="Follow-up instruction (leave blank to re-run the original prompt)"
-              className="flex-1 rounded border border-ink-600 bg-ink-900 px-2 py-1 text-[11px] text-ink-100 placeholder-ink-400 outline-none focus:border-forge-600"
+              className="flex-1 rounded border border-ink-600 bg-ink-900 px-2 py-1 text-[11px] text-ink-100 placeholder-ink-400 outline-none focus:border-forge-600 focus-visible:ring-2 focus-visible:ring-forge-500/50"
             />
             <ActionButton onClick={() => run('resume', { prompt: resumePrompt })} busy={busy === 'resume'} tone="primary">
               Send
@@ -182,7 +185,7 @@ export function TaskDetail({ task, project, events, onClose, onAction }: Props) 
 
         {(notice || task.error) && (
           <div
-            className={`mt-2 rounded border px-2 py-1.5 text-[11px] ${
+            className={`animate-rise mt-2 rounded border px-2 py-1.5 text-[11px] ${
               notice?.tone === 'ok'
                 ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200'
                 : 'border-red-500/40 bg-red-500/10 text-red-200'
@@ -199,7 +202,7 @@ export function TaskDetail({ task, project, events, onClose, onAction }: Props) 
       </div>
 
       {/* split: log | diff */}
-      <div className="grid min-h-0 flex-1 grid-cols-2">
+      <div className="grid min-h-0 flex-1 grid-cols-2 overflow-hidden">
         <LogStream events={events} live={isRunning} />
         {hasWorktree ? (
           <DiffView taskId={task.id} refreshKey={diffKey} />
@@ -218,24 +221,34 @@ function ActionButton({
   onClick,
   busy,
   tone = 'default',
+  icon: Icon,
 }: {
   children: React.ReactNode;
   onClick: () => void;
   busy: boolean;
   tone?: 'default' | 'primary' | 'danger';
+  icon?: React.ComponentType<{ className?: string; strokeWidth?: number }>;
 }) {
   const tones = {
-    default: 'border-ink-600 bg-ink-800 text-ink-200 hover:bg-ink-700',
-    primary: 'border-forge-600 bg-forge-600 text-ink-900 hover:bg-forge-500',
-    danger: 'border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20',
+    default:
+      'border-ink-600 bg-gradient-to-b from-ink-700 to-ink-800 text-ink-200 hover:from-ink-600 hover:to-ink-700 focus-visible:ring-forge-500/60',
+    primary:
+      'border-forge-600 bg-gradient-to-b from-forge-500 to-forge-600 text-ink-900 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.25),0_2px_8px_-2px_rgba(217,119,6,0.5)] hover:from-forge-400 hover:to-forge-500 focus-visible:ring-forge-400/70',
+    danger:
+      'border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20 focus-visible:ring-red-400/60',
   };
   return (
     <button
       onClick={onClick}
       disabled={busy}
-      className={`rounded border px-2 py-0.5 text-[11px] disabled:opacity-50 ${tones[tone]}`}
+      className={`flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium outline-none transition focus-visible:ring-2 active:scale-[0.97] disabled:opacity-50 disabled:active:scale-100 ${tones[tone]}`}
     >
-      {busy ? '…' : children}
+      {busy ? '…' : (
+        <>
+          {Icon && <Icon className="h-3 w-3" strokeWidth={2.25} />}
+          {children}
+        </>
+      )}
     </button>
   );
 }

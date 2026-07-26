@@ -53,7 +53,7 @@ export function DiffView({ taskId, refreshKey }: { taskId: string; refreshKey: n
   const totalDeleted = diff?.files.reduce((n, f) => n + f.deleted, 0) ?? 0;
 
   return (
-    <div className="flex h-full flex-col border-l border-ink-700">
+    <div className="flex h-full min-h-0 flex-col border-l border-ink-700">
       <div className="flex shrink-0 items-center gap-2 border-b border-ink-700 px-2.5 py-1">
         <span className="text-[11px] font-medium uppercase tracking-wider text-ink-400">Diff</span>
         {diff && diff.files.length > 0 && (
@@ -67,16 +67,16 @@ export function DiffView({ taskId, refreshKey }: { taskId: string; refreshKey: n
       </div>
 
       <div className="flex-1 overflow-auto">
-        {error && <p className="p-3 text-[11px] text-red-300">{error}</p>}
+        {error && <p className="animate-rise p-3 text-[11px] text-red-300">{error}</p>}
 
         {diff && diff.files.length === 0 && !error && (
-          <p className="p-4 text-center text-[11px] text-ink-500">
+          <p className="animate-fade p-4 text-center text-[11px] text-ink-500">
             No changes in this worktree yet.
           </p>
         )}
 
         {diff && diff.files.length > 0 && (
-          <>
+          <div className="animate-fade">
             <ul className="border-b border-ink-700 bg-ink-850">
               {diff.files.map((file) => (
                 <li key={file.path} className="flex items-center gap-2 px-2.5 py-0.5 font-mono text-[11px]">
@@ -98,7 +98,7 @@ export function DiffView({ taskId, refreshKey }: { taskId: string; refreshKey: n
                 Patch truncated at 2MB. Inspect the worktree directly for the rest.
               </p>
             )}
-          </>
+          </div>
         )}
       </div>
     </div>

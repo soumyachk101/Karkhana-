@@ -1,5 +1,6 @@
 'use client';
 
+import { ArrowDown } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toLogLines, type LogLine } from '@/lib/format';
 import type { TaskEvent } from '@/lib/types';
@@ -48,7 +49,7 @@ export function LogStream({ events, live }: { events: TaskEvent[]; live: boolean
   const visible = showThinking ? lines : lines.filter((l) => l.kind !== 'thinking');
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       <div className="flex shrink-0 items-center gap-2 border-b border-ink-700 px-2.5 py-1">
         <span className="text-[11px] font-medium uppercase tracking-wider text-ink-400">Log</span>
         <span className="tabular-nums text-[11px] text-ink-500">{visible.length} lines</span>
@@ -58,7 +59,7 @@ export function LogStream({ events, live }: { events: TaskEvent[]; live: boolean
             type="checkbox"
             checked={showThinking}
             onChange={(e) => setShowThinking(e.target.checked)}
-            className="h-3 w-3 accent-forge-500"
+            className="h-3 w-3 accent-forge-500 outline-none focus-visible:ring-2 focus-visible:ring-forge-500/60"
           />
           thinking
         </label>
@@ -68,9 +69,10 @@ export function LogStream({ events, live }: { events: TaskEvent[]; live: boolean
               setPinned(true);
               bottomRef.current?.scrollIntoView({ block: 'end' });
             }}
-            className="rounded bg-ink-700 px-1.5 py-0.5 text-[10px] text-ink-200 hover:bg-ink-600"
+            className="animate-pop flex items-center gap-1 rounded-md bg-ink-700 px-2 py-1 text-[10px] text-ink-200 outline-none transition-colors hover:bg-ink-600 focus-visible:ring-2 focus-visible:ring-forge-500/60"
           >
-            ↓ follow
+            <ArrowDown className="h-2.5 w-2.5" strokeWidth={2.5} />
+            follow
           </button>
         )}
       </div>
@@ -102,7 +104,7 @@ export function LogStream({ events, live }: { events: TaskEvent[]; live: boolean
         {live && (
           <div className="flex gap-2 py-1 font-mono text-[11px] text-forge-500">
             <span className="w-14" />
-            <span className="animate-live">▌</span>
+            <span className="animate-live [text-shadow:0_0_6px_var(--color-forge-500)]">▌</span>
           </div>
         )}
         <div ref={bottomRef} />

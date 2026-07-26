@@ -1,6 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <radialGradient id="ember" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
   <rect width="32" height="32" rx="7" fill="#0e1116"/>
-  <!-- three bars: parallel agents, the middle one lit -->
+  <!-- three bars: parallel agents, the middle one lit and glowing like a forge -->
+  <circle cx="16" cy="16" r="11" fill="url(#ember)"/>
   <rect x="7" y="8" width="4" height="16" rx="1.5" fill="#4a5563"/>
   <rect x="14" y="5" width="4" height="22" rx="1.5" fill="#f59e0b"/>
   <rect x="21" y="8" width="4" height="16" rx="1.5" fill="#4a5563"/>
