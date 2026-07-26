@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { Project, Task } from '@/lib/types';
+import { FolderBrowser } from './FolderBrowser.tsx';
 
 type Props = {
   projects: Project[];
@@ -18,6 +19,7 @@ export function Sidebar({ projects, tasks, selectedId, onSelect, onAdd, onRemove
   const [baseBranch, setBaseBranch] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [browsing, setBrowsing] = useState(false);
 
   const submit = async () => {
     if (!path.trim()) return;
@@ -53,14 +55,23 @@ export function Sidebar({ projects, tasks, selectedId, onSelect, onAdd, onRemove
 
       {adding && (
         <div className="border-y border-ink-700 bg-ink-800 p-2.5">
-          <input
-            autoFocus
-            value={path}
-            onChange={(e) => setPath(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && submit()}
-            placeholder="/absolute/path/to/repo"
-            className="mb-1.5 w-full rounded border border-ink-600 bg-ink-900 px-2 py-1 font-mono text-[11px] text-ink-50 placeholder-ink-400 outline-none focus:border-forge-600"
-          />
+          <div className="mb-1.5 flex gap-1.5">
+            <input
+              autoFocus
+              value={path}
+              onChange={(e) => setPath(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && submit()}
+              placeholder="/absolute/path/to/repo or a git URL"
+              className="min-w-0 flex-1 rounded border border-ink-600 bg-ink-900 px-2 py-1 font-mono text-[11px] text-ink-50 placeholder-ink-400 outline-none focus:border-forge-600"
+            />
+            <button
+              onClick={() => setBrowsing(true)}
+              title="Browse for a folder"
+              className="shrink-0 rounded border border-ink-600 bg-ink-900 px-2 py-1 text-[11px] text-ink-300 hover:bg-ink-700"
+            >
+              Browse…
+            </button>
+          </div>
           <input
             value={baseBranch}
             onChange={(e) => setBaseBranch(e.target.value)}
@@ -136,10 +147,21 @@ export function Sidebar({ projects, tasks, selectedId, onSelect, onAdd, onRemove
 
         {projects.length === 0 && !adding && (
           <p className="px-2 py-3 text-[11px] leading-relaxed text-ink-400">
-            No projects yet. Press <span className="text-ink-200">+</span> to register a local git repo.
+            No projects yet. Press <span className="text-ink-200">+</span> to register a local git repo
+            or clone one from a URL.
           </p>
         )}
       </nav>
+
+      {browsing && (
+        <FolderBrowser
+          onClose={() => setBrowsing(false)}
+          onSelect={(selected) => {
+            setPath(selected);
+            setBrowsing(false);
+          }}
+        />
+      )}
     </aside>
   );
 }

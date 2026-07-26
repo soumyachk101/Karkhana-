@@ -255,6 +255,40 @@ export async function mergeTask(project: Project, task: Task): Promise<MergeResu
   return { ok: true, committed, mergedInto: project.base_branch };
 }
 
+export type PushResult = { ok: true; remote: string; branch: string } | { ok: false; reason: string };
+
+/**
+ * Pushes the project's base branch to its `origin` remote — the explicit,
+ * user-triggered step after a merge for repos that were cloned from GitHub
+ * (or anywhere else). Never automatic: Karkhana merges locally on its own,
+ * but pushing touches a shared remote, so it only happens when asked.
+ *
+ * Uses whatever credential helper or SSH key already authenticates a manual
+ * `git push` on this machine — same as `cloneRepo`, there is no separate
+ * auth layer of Karkhana's own.
+ */
+export async function pushToRemote(project: Project): Promise<PushResult> {
+  const onBranch = await currentBranch(project.path);
+  if (onBranch !== project.base_branch) {
+    return {
+      ok: false,
+      reason: `${project.path} is on "${onBranch}", not the base branch "${project.base_branch}". Switch to it and retry.`,
+    };
+  }
+
+  const remotes = await git(project.path, ['remote'], { allowFailure: true });
+  if (!remotes.stdout.split('\n').map((r) => r.trim()).includes('origin')) {
+    return { ok: false, reason: `No "origin" remote configured for ${project.path}.` };
+  }
+
+  try {
+    await git(project.path, ['push', 'origin', project.base_branch]);
+    return { ok: true, remote: 'origin', branch: project.base_branch };
+  } catch (err) {
+    return { ok: false, reason: (err as Error).message };
+  }
+}
+
 export type Orphan = { path: string; branch: string | null; reason: string };
 
 /**

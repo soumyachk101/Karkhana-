@@ -11,7 +11,7 @@ type Props = {
   project: Project | undefined;
   events: TaskEvent[];
   onClose: () => void;
-  onAction: (action: 'cancel' | 'retry' | 'resume' | 'merge' | 'discard', body?: unknown) => Promise<unknown>;
+  onAction: (action: 'cancel' | 'retry' | 'resume' | 'merge' | 'discard' | 'push', body?: unknown) => Promise<unknown>;
 };
 
 export function TaskDetail({ task, project, events, onClose, onAction }: Props) {
@@ -32,7 +32,7 @@ export function TaskDetail({ task, project, events, onClose, onAction }: Props) 
     setNotice(null);
     try {
       const result = (await onAction(action, body)) as
-        | { ok?: boolean; reason?: string; conflicts?: string[]; manualCommand?: string }
+        | { ok?: boolean; reason?: string; conflicts?: string[]; manualCommand?: string; remote?: string; branch?: string }
         | undefined;
 
       if (action === 'merge' && result && result.ok === false) {
@@ -45,6 +45,10 @@ export function TaskDetail({ task, project, events, onClose, onAction }: Props) 
         });
       } else if (action === 'merge') {
         setNotice({ tone: 'ok', text: `Merged into ${project?.base_branch ?? 'base'}.` });
+      } else if (action === 'push' && result && result.ok === false) {
+        setNotice({ tone: 'error', text: result.reason ?? 'Push failed.' });
+      } else if (action === 'push') {
+        setNotice({ tone: 'ok', text: `Pushed ${result?.branch ?? 'base'} to ${result?.remote ?? 'origin'}.` });
       }
       setDiffKey((k) => k + 1);
     } catch (err) {
@@ -118,6 +122,23 @@ export function TaskDetail({ task, project, events, onClose, onAction }: Props) 
                 tone="danger"
               >
                 Discard
+              </ActionButton>
+            </>
+          )}
+
+          {task.status === 'merged' && (
+            <>
+              <div className="mx-1 h-4 w-px bg-ink-600" />
+              <ActionButton
+                onClick={() => {
+                  if (confirm(`Push ${project?.base_branch ?? 'base'} to origin? This touches the remote repo.`)) {
+                    void run('push');
+                  }
+                }}
+                busy={busy === 'push'}
+                tone="primary"
+              >
+                Push to origin
               </ActionButton>
             </>
           )}

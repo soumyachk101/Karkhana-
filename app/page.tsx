@@ -163,7 +163,7 @@ export default function Page() {
 
   const taskAction = async (
     taskId: string,
-    action: 'cancel' | 'retry' | 'resume' | 'merge' | 'discard',
+    action: 'cancel' | 'retry' | 'resume' | 'merge' | 'discard' | 'push',
     body?: unknown,
   ) => {
     const result = await api(`/api/tasks/${taskId}/${action}`, {

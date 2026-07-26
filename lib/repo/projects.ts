@@ -1,7 +1,40 @@
+import os from 'node:os';
 import path from 'node:path';
 import { getDb, newId } from '../db.ts';
-import { branchExists, guessDefaultBranch, isGitRepo, repoRoot } from '../git.ts';
+import { branchExists, cloneRepo, guessDefaultBranch, isGitRepo, repoRoot } from '../git.ts';
 import type { Project } from '../types.ts';
+
+const REMOTE_URL_RE = /^(https?:\/\/|git@|ssh:\/\/|git:\/\/|file:\/\/)/;
+/**
+ * Where a pasted GitHub/remote URL gets cloned to, one directory per repo
+ * name. Overridable the same way as `KARKHANA_HOME` (see lib/config.ts) —
+ * mainly so tests don't clone into the real machine's home directory.
+ */
+const CLONE_ROOT = process.env.KARKHANA_CLONE_ROOT ?? path.join(os.homedir(), 'karkhana-repos');
+
+function repoNameFromUrl(url: string): string {
+  const cleaned = url.trim().replace(/\.git$/, '').replace(/\/+$/, '');
+  const last = cleaned.split(/[/:]/).pop() || 'repo';
+  return last.replace(/[^a-zA-Z0-9._-]/g, '-') || 'repo';
+}
+
+/**
+ * Resolves the `path` field of a project-creation request to a local
+ * directory, cloning it first if it's a remote URL rather than a path
+ * already on disk. Reuses an existing clone at the destination rather than
+ * re-cloning over it.
+ */
+async function resolveLocalPath(input: string): Promise<string> {
+  const trimmed = input.trim();
+  if (!REMOTE_URL_RE.test(trimmed)) {
+    return path.resolve(trimmed.replace(/^~(?=$|\/)/, process.env.HOME ?? '~'));
+  }
+  const destDir = path.join(CLONE_ROOT, repoNameFromUrl(trimmed));
+  if (!(await isGitRepo(destDir))) {
+    await cloneRepo(trimmed, destDir);
+  }
+  return destDir;
+}
 
 export function listProjects(): Project[] {
   return getDb().prepare('SELECT * FROM projects ORDER BY created_at ASC').all() as Project[];
@@ -16,15 +49,17 @@ export function getProjectByPath(p: string): Project | null {
 }
 
 /**
- * Registers a local repo. `dir` may point anywhere inside the repo; we store
- * the resolved root so worktree paths are stable.
+ * Registers a repo. `input.path` may be a local path pointing anywhere inside
+ * the repo, or a remote URL (`https://github.com/...`, `git@...`) — a remote
+ * is cloned to `~/karkhana-repos/<name>` first. Either way we store the
+ * resolved local root so worktree paths are stable.
  */
 export async function createProject(input: {
   path: string;
   name?: string;
   baseBranch?: string;
 }): Promise<Project> {
-  const abs = path.resolve(input.path.replace(/^~(?=$|\/)/, process.env.HOME ?? '~'));
+  const abs = await resolveLocalPath(input.path);
 
   if (!(await isGitRepo(abs))) {
     throw new Error(`${abs} is not a git repository.`);

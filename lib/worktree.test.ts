@@ -12,6 +12,7 @@ import {
   findOrphanWorktrees,
   getTaskDiff,
   mergeTask,
+  pushToRemote,
   removeWorktree,
 } from './worktree.ts';
 
@@ -314,6 +315,57 @@ await test('findOrphanWorktrees ignores the project root and non-karkhana branch
     assert.ok(orphans.some((o) => path.resolve(o.path) === path.resolve(deadWt)));
 
     await removeWorktree(project, liveWt, liveBranch);
+  } finally {
+    cleanup();
+  }
+});
+
+await test('pushToRemote refuses when there is no origin remote configured', async () => {
+  const { root, cleanup } = await makeTempRepo();
+  try {
+    const project = makeProject(root);
+    const result = await pushToRemote(project);
+    assert.equal(result.ok, false);
+    if (!result.ok) assert.match(result.reason, /No "origin" remote/);
+  } finally {
+    cleanup();
+  }
+});
+
+await test('pushToRemote refuses when the main tree is not on the base branch', async () => {
+  const { root, cleanup } = await makeTempRepo();
+  try {
+    await git(root, ['checkout', '-q', '-b', 'not-main']);
+    const project = makeProject(root);
+    const result = await pushToRemote(project);
+    assert.equal(result.ok, false);
+    if (!result.ok) assert.match(result.reason, /not-main/);
+  } finally {
+    cleanup();
+  }
+});
+
+await test('pushToRemote pushes the base branch to a real origin', async () => {
+  const { root, cleanup } = await makeTempRepo();
+  try {
+    const bareDir = path.join(path.dirname(root), 'bare-origin.git');
+    await fs.mkdir(bareDir, { recursive: true });
+    await git(bareDir, ['init', '-q', '--bare']);
+    await git(root, ['remote', 'add', 'origin', bareDir]);
+
+    const project = makeProject(root);
+    const result = await pushToRemote(project);
+    assert.equal(result.ok, true);
+    if (result.ok) {
+      assert.equal(result.remote, 'origin');
+      assert.equal(result.branch, 'main');
+    }
+
+    const headInRoot = (await git(root, ['rev-parse', 'HEAD'])).stdout.trim();
+    const headInBare = (await git(bareDir, ['rev-parse', 'main'])).stdout.trim();
+    assert.equal(headInBare, headInRoot);
+
+    await fs.rm(bareDir, { recursive: true, force: true });
   } finally {
     cleanup();
   }

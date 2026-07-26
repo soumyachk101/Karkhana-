@@ -1,4 +1,6 @@
 import { execFile } from 'node:child_process';
+import { mkdir } from 'node:fs/promises';
+import path from 'node:path';
 import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
@@ -51,6 +53,17 @@ export async function isGitRepo(dir: string): Promise<boolean> {
     allowFailure: true,
   });
   return stdout.trim() === 'true';
+}
+
+/**
+ * Clones a remote URL into `destDir` (its parent is created if needed).
+ * `GIT_TERMINAL_PROMPT=0` (set in `git()`) means a private repo with no
+ * cached credentials or SSH key fails fast with a clear error instead of
+ * hanging on a password prompt nobody can answer.
+ */
+export async function cloneRepo(url: string, destDir: string): Promise<void> {
+  await mkdir(path.dirname(destDir), { recursive: true });
+  await git(path.dirname(destDir), ['clone', url, destDir]);
 }
 
 /** Absolute path to the repo root containing `dir`. */

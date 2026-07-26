@@ -14,8 +14,10 @@ import {
   getTaskDiff,
   mergeTask,
   provisionTaskWorktree,
+  pushToRemote,
   removeWorktree,
   type MergeResult,
+  type PushResult,
 } from '../worktree.ts';
 import { runAgent, type RunHandle } from './runner.ts';
 
@@ -231,6 +233,25 @@ export class Orchestrator {
       const updated = updateTask(taskId, { error: result.reason });
       publish({ type: 'status', taskId, task: updated });
     }
+    return result;
+  }
+
+  /**
+   * Pushes the project's base branch to `origin` — a separate, explicit step
+   * from merge. Merging is always local and automatic within Karkhana;
+   * pushing touches a remote the user doesn't control from here, so it's
+   * never bundled into merge itself.
+   */
+  async push(taskId: string): Promise<PushResult> {
+    const task = getTask(taskId);
+    if (!task) throw new Error(`No task ${taskId}`);
+
+    const project = getProject(task.project_id);
+    if (!project) throw new Error('Project no longer exists.');
+
+    const result = await pushToRemote(project);
+    const ev = appendEvent(taskId, 'lifecycle', { kind: 'push_attempt', result });
+    publish({ type: 'event', taskId, event: ev });
     return result;
   }
 

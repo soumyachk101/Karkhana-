@@ -109,6 +109,36 @@ Step 4 is deliberate: a half-merged main tree would block every subsequent merge
 and a user who doesn't notice it is in a much worse position than one who gets a
 conflict list and the manual command. Karkhana never leaves the main tree dirty.
 
+### Connecting a remote repo, and pushing back to it
+
+`createProject`'s `path` field accepts either a local path or a remote URL
+(`https://`, `git@`, `ssh://`, `git://`, `file://`). A URL is cloned to
+`~/karkhana-repos/<name>` first (`KARKHANA_CLONE_ROOT` overrides this — mainly
+so tests never clone into a real home directory), then registered exactly
+like a local repo. A destination that's already a valid clone is reused rather
+than cloned over, so re-adding the same URL after a deleted project or a
+half-finished clone is safe.
+
+There is no GitHub API integration and no OAuth — clone and push both just
+shell out to `git`, so they work only with whatever credential helper or SSH
+key already authenticates a manual `git push` on this machine. A private repo
+with no cached credentials fails fast (`GIT_TERMINAL_PROMPT=0`, set in
+`git()`) instead of hanging on a password prompt nobody can answer.
+
+For a local path, `GET /api/fs/browse?path=` (`app/components/FolderBrowser.tsx`)
+gives the sidebar's "Browse…" button a click-through directory picker. This
+exists because a web page can never read an absolute filesystem path off a
+native `<input type="file">` — browsers deliberately don't expose one — but
+since Karkhana's server and browser are always the same machine, the server
+just reads the disk itself and hands back names to click through instead.
+
+Pushing is `pushToRemote()` in `lib/worktree.ts`, deliberately **separate**
+from merge: merging is local and automatic, but a push touches a remote
+outside Karkhana's control, so it only happens from an explicit "Push to
+origin" button on a merged task (`POST /api/tasks/[id]/push`), behind a
+confirm dialog. It refuses off the base branch or with no `origin` remote,
+the same shape of precondition check as `mergeTask`.
+
 ## Agent invocation
 
 ```
