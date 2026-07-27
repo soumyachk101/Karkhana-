@@ -13,10 +13,17 @@
   --color-ink-100: #ced4dc;
   --color-ink-50: #eef1f5;
 
-  --color-forge-700: #b45309;
-  --color-forge-600: #d97706;
-  --color-forge-500: #f59e0b;
-  --color-forge-400: #fbbf24;
+  --color-forge-700: #d97706;
+  --color-forge-600: #f59e0b;
+  --color-forge-500: #fbbf24;
+  --color-forge-400: #fef08a;
+
+  /* Pastel Color Tokens */
+  --color-pastel-purple: #c4b5fd;
+  --color-pastel-pink: #fbcfe8;
+  --color-pastel-mint: #a7f3d0;
+  --color-pastel-sky: #bae6fd;
+  --color-pastel-amber: #fde68a;
 
   /* Body copy is set in Public Sans — built for clarity at the small, dense
      sizes this UI runs at. Space Grotesk is reserved for the wordmark and
@@ -40,13 +47,12 @@ body {
 }
 
 body {
-  /* A flat fill reads as a placeholder, not a product — a barely-there
-     ambient wash (warm from the forge, cool counter-light opposite) gives
-     the shell depth without ever competing with the actual UI on top. */
+  /* Smooth Pastel Ambient Wash: Soft Lavender & Mint Glow */
   background:
-    radial-gradient(1100px circle at 12% -12%, color-mix(in oklab, var(--color-forge-600) 10%, transparent), transparent 60%),
-    radial-gradient(900px circle at 105% 0%, color-mix(in oklab, var(--color-ink-400) 18%, transparent), transparent 55%),
-    var(--color-ink-900);
+    radial-gradient(1000px circle at 15% -10%, rgba(196, 181, 253, 0.12), transparent 55%),
+    radial-gradient(900px circle at 85% -5%, rgba(167, 243, 208, 0.10), transparent 50%),
+    radial-gradient(800px circle at 50% 105%, rgba(186, 230, 253, 0.08), transparent 60%),
+    #0a0c10;
   background-attachment: fixed;
   color: var(--color-ink-100);
   font-family: var(--font-sans);

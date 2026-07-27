@@ -45,17 +45,17 @@ export function NewTaskDialog({ projects, defaultProjectId, claudeEnabled, onClo
 
   return (
     <div
-      className="animate-fade fixed inset-0 z-50 flex items-start justify-center bg-black/70 pt-24 backdrop-blur-sm"
+      className="animate-fade fixed inset-0 z-50 flex items-start justify-center bg-black/60 pt-24 backdrop-blur-md"
       onClick={onClose}
     >
       <div
-        className="animate-pop w-[600px] rounded-xl border border-ink-600 bg-gradient-to-b from-ink-800 to-ink-850 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_24px_48px_-12px_rgba(0,0,0,0.7)]"
+        className="animate-pop w-[620px] rounded-2xl border border-slate-700/60 bg-[#0E1118]/95 p-1 shadow-[0_16px_40px_rgba(0,0,0,0.6)] backdrop-blur-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-ink-700 px-3.5 py-2.5">
-          <span className="font-display flex items-center gap-1.5 text-[13px] font-medium text-ink-100">
-            <Sparkles className="h-3.5 w-3.5 text-forge-400" strokeWidth={2} />
-            New task
+        <div className="flex items-center justify-between border-b border-slate-800/80 px-4 py-3">
+          <span className="font-display flex items-center gap-2 text-[14px] font-bold text-amber-300">
+            <Sparkles className="h-4 w-4 text-amber-300" strokeWidth={2} />
+            Dispatch New AI Agent Task
           </span>
           <button
             onClick={onClose}

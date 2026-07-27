@@ -1,6 +1,7 @@
 'use client';
 
-import { AlertCircle, AlertTriangle, Key, SlidersHorizontal } from 'lucide-react';
+import { AlertCircle, AlertTriangle, FolderGit2, Key, LayoutGrid, Settings, SlidersHorizontal, Terminal } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 
 /** Inline brand mark — the same three-bars-lit concept as app/icon.svg, so the
@@ -17,42 +18,109 @@ function Mark() {
 }
 
 type Props = {
-  running: number;
-  queued: number;
-  limit: number;
-  connected: boolean;
-  binaryOk: boolean;
+  running?: number;
+  queued?: number;
+  limit?: number;
+  connected?: boolean;
+  binaryOk?: boolean;
   binaryReason?: string;
-  orphanCount: number;
-  onChangeLimit: (limit: number) => void;
-  onShowCleanup: () => void;
-  onShowApiKeys: () => void;
+  orphanCount?: number;
+  onChangeLimit?: (limit: number) => void;
+  onShowCleanup?: () => void;
+  onShowApiKeys?: () => void;
+  activeTab?: 'hub' | 'projects' | 'terminal' | 'settings';
+  projects?: unknown[];
+  selectedProjectId?: string | null;
+  onSelectProject?: (id: string) => void;
+  onNewTask?: () => void;
+  onOpenApiKeys?: () => void;
+  runningCount?: number;
+  queuedCount?: number;
+  concurrencyLimit?: number;
 };
 
 export function TopBar({
-  running,
-  queued,
-  limit,
-  connected,
-  binaryOk,
+  running = 0,
+  queued = 0,
+  limit = 10,
+  connected = true,
+  binaryOk = true,
   binaryReason,
-  orphanCount,
-  onChangeLimit,
-  onShowCleanup,
-  onShowApiKeys,
+  orphanCount = 0,
+  onChangeLimit = () => {},
+  onShowCleanup = () => {},
+  onShowApiKeys = () => {},
+  activeTab = 'hub',
+  runningCount,
+  queuedCount,
+  concurrencyLimit,
 }: Props) {
   const [editing, setEditing] = useState(false);
-  const atCapacity = running >= limit && limit > 0;
+  const activeRunning = runningCount ?? running;
+  const activeQueued = queuedCount ?? queued;
+  const activeLimit = concurrencyLimit ?? limit;
+  const atCapacity = activeRunning >= activeLimit && activeLimit > 0;
 
   return (
-    <header className="relative z-10 flex h-12 shrink-0 items-center gap-4 border-b border-ink-700/80 bg-ink-850 px-4 shadow-[0_1px_0_0_rgba(0,0,0,0.4),0_4px_16px_-4px_rgba(0,0,0,0.5)]">
-      <div className="flex items-center gap-2">
+    <header className="relative z-10 flex h-12 shrink-0 items-center gap-4 border-b border-ink-700/80 bg-[#0A0D14] px-4 shadow-[0_1px_0_0_rgba(0,0,0,0.4),0_4px_16px_-4px_rgba(0,0,0,0.5)] backdrop-blur-md">
+      <Link href="/" className="flex items-center gap-2 group">
         <Mark />
         <div className="flex items-baseline gap-2">
-          <span className="font-display text-[16px] font-semibold tracking-tight text-forge-500">Karkhana</span>
+          <span className="font-display text-[16px] font-bold tracking-tight text-forge-500 group-hover:text-forge-400 transition">Karkhana</span>
           <span className="text-[11px] text-ink-400">कारख़ाना</span>
         </div>
-      </div>
+      </Link>
+
+      {/* SaaS Navigation Tabs */}
+      <nav className="flex items-center gap-1 ml-4 border-l border-ink-800 pl-4 font-display text-[12px] font-medium">
+        <Link
+          href="/"
+          className={`flex items-center gap-1.5 rounded-lg px-3 py-1 transition ${
+            activeTab === 'hub'
+              ? 'bg-forge-500/20 text-forge-400 font-semibold border border-forge-500/40 shadow-sm'
+              : 'text-ink-400 hover:bg-ink-800/60 hover:text-ink-100'
+          }`}
+        >
+          <LayoutGrid className="h-3.5 w-3.5" />
+          <span>Command Hub</span>
+        </Link>
+
+        <Link
+          href="/projects"
+          className={`flex items-center gap-1.5 rounded-lg px-3 py-1 transition ${
+            activeTab === 'projects'
+              ? 'bg-forge-500/20 text-forge-400 font-semibold border border-forge-500/40 shadow-sm'
+              : 'text-ink-400 hover:bg-ink-800/60 hover:text-ink-100'
+          }`}
+        >
+          <FolderGit2 className="h-3.5 w-3.5" />
+          <span>Projects</span>
+        </Link>
+
+        <Link
+          href="/terminal"
+          className={`flex items-center gap-1.5 rounded-lg px-3 py-1 transition ${
+            activeTab === 'terminal'
+              ? 'bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/40 shadow-sm'
+              : 'text-ink-400 hover:bg-ink-800/60 hover:text-ink-100'
+          }`}
+        >
+          <Terminal className="h-3.5 w-3.5" />
+          <span>Terminal Studio</span>
+        </Link>
+
+        <Link
+          href="/settings"
+          className={`flex items-center gap-1.5 rounded-lg px-3 py-1 transition ${
+            activeTab === 'settings'
+              ? 'bg-purple-500/20 text-purple-400 font-semibold border border-purple-500/40 shadow-sm'
+              : 'text-ink-400 hover:bg-ink-800/60 hover:text-ink-100'
+          }`}
+        >
+          <Settings className="h-3.5 w-3.5" />
+          <span>Settings</span>
+        </Link>
+      </nav>
 
       <div className="flex items-center gap-1.5 rounded-md border border-ink-600/80 bg-gradient-to-b from-ink-800 to-ink-850 px-2.5 py-1 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.03)]">
         <SlidersHorizontal className="h-3.5 w-3.5 text-forge-400" strokeWidth={2.25} />
@@ -151,9 +219,9 @@ export function TopBar({
         </span>
       )}
 
-      <span className="flex items-center gap-1.5 text-[11px] text-ink-400" title={connected ? 'Live' : 'Reconnecting…'}>
-        <span className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-emerald-400' : 'bg-red-400 animate-live'}`} />
-        {connected ? 'live' : 'offline'}
+      <span className="flex items-center gap-1.5 text-[11px] text-ink-400 font-mono" title={connected ? 'WebSocket Live' : 'HTTP Cloud Polling Active'}>
+        <span className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-emerald-400 animate-pulse' : 'bg-emerald-400/80'}`} />
+        <span>{connected ? 'live (ws)' : 'live (cloud)'}</span>
       </span>
     </header>
   );

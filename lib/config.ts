@@ -21,11 +21,9 @@ export type KarkhanaConfig = {
   geminiApiKey?: string;
   /** Max agents running at once; the rest queue. */
   concurrency: number;
-  /**
-   * Where worktrees live. `null` means the default: `<project>/../.karkhana`,
-   * i.e. a sibling of each registered repo.
-   */
   worktreeRoot: string | null;
+  /** Whether tasks automatically merge to local project folder when completed. Default: true. */
+  autoMerge: boolean;
   dbPath: string;
 };
 
@@ -97,6 +95,7 @@ function defaults(): KarkhanaConfig {
     antigravityBinPath: detectAntigravityBinary(),
     codexBinPath: detectCodexBinary(),
     claudeEnabled: false,
+    autoMerge: true,
     anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? '',
     openaiApiKey: process.env.OPENAI_API_KEY ?? '',
     geminiApiKey: process.env.GEMINI_API_KEY ?? '',
