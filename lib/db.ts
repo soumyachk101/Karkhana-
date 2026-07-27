@@ -12,14 +12,35 @@ const state = holder<{ db?: Database.Database }>('db');
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 function open(): Database.Database {
-  const { dbPath } = getConfig();
-  const db = new Database(dbPath);
+  let { dbPath } = getConfig();
+  let db: Database.Database;
 
-  // WAL lets the UI read while an agent's events are being written.
-  db.pragma('journal_mode = WAL');
-  db.pragma('synchronous = NORMAL');
-  db.pragma('foreign_keys = ON');
-  db.pragma('busy_timeout = 5000');
+  try {
+    db = new Database(dbPath);
+  } catch {
+    // If opening at dbPath fails (e.g., read-only filesystem on Vercel), fallback to /tmp/karkhana.db
+    dbPath = path.join('/tmp', 'karkhana.db');
+    db = new Database(dbPath);
+  }
+
+  try {
+    // WAL lets the UI read while an agent's events are being written.
+    db.pragma('journal_mode = WAL');
+  } catch {
+    try {
+      db.pragma('journal_mode = DELETE');
+    } catch {
+      /* ignore */
+    }
+  }
+
+  try {
+    db.pragma('synchronous = NORMAL');
+    db.pragma('foreign_keys = ON');
+    db.pragma('busy_timeout = 5000');
+  } catch {
+    /* ignore non-critical pragmas */
+  }
 
   db.exec(fs.readFileSync(path.join(HERE, 'schema.sql'), 'utf8'));
   return db;

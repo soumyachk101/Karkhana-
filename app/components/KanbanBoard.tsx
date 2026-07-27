@@ -26,20 +26,22 @@ export function KanbanBoard({ tasks, projects, showProject, selectedTaskId, onSe
           // below ~1400px they hit min-width and the row scrolls instead.
           <section
             key={status}
-            className="flex min-w-48 flex-1 flex-col overflow-hidden rounded-lg border border-ink-700 bg-gradient-to-b from-ink-850 to-ink-900/60 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.4)]"
+            className="flex min-w-52 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-800/80 bg-[#0B0E16]/80 shadow-xl backdrop-blur-md transition-all"
           >
-            {/* A thin per-status accent — each column reads as its own station
-                on the floor, not an interchangeable list. */}
-            <div className={`h-[2px] shrink-0 ${style.dot}`} />
-            <header className="flex items-center gap-1.5 border-b border-ink-700/80 bg-ink-850/60 px-2.5 py-2">
-              <span className={`h-1.5 w-1.5 rounded-full ${style.dot} ${status === 'running' ? 'animate-ember' : ''}`} />
-              <span className={`text-[11px] font-medium ${style.text}`}>{STATUS_LABEL[status]}</span>
-              <span className="ml-auto rounded bg-ink-800 px-1.5 py-0.5 tabular-nums text-[10px] text-ink-400">
+            {/* Top status header bar */}
+            <header className="flex items-center justify-between border-b border-slate-800/80 bg-[#101420]/90 px-3.5 py-2.5 backdrop-blur-md">
+              <div className="flex items-center gap-2">
+                <span className={`h-2 w-2 rounded-full ${style.dot} ${status === 'running' ? 'animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.8)]' : ''}`} />
+                <span className="font-display text-[12px] font-bold tracking-tight text-slate-200">
+                  {STATUS_LABEL[status]}
+                </span>
+              </div>
+              <span className="rounded-full bg-slate-800/90 border border-slate-700/60 px-2 py-0.5 font-mono text-[10px] font-bold text-slate-300 shadow-inner">
                 {column.length}
               </span>
             </header>
 
-            <div className="flex flex-1 flex-col gap-1.5 overflow-y-auto p-1.5">
+            <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-2">
               {column.map((task) => (
                 <TaskCard
                   key={task.id}
@@ -51,7 +53,9 @@ export function KanbanBoard({ tasks, projects, showProject, selectedTaskId, onSe
                 />
               ))}
               {column.length === 0 && (
-                <p className="px-1 py-2 text-[11px] text-ink-600">No tasks</p>
+                <div className="flex flex-col items-center justify-center py-8 text-center text-slate-600">
+                  <p className="font-mono text-[11px]">No tasks</p>
+                </div>
               )}
             </div>
           </section>

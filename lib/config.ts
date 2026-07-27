@@ -30,7 +30,12 @@ export type KarkhanaConfig = {
 // Where machine-local state lives: karkhana.config.json and karkhana.db. The
 // cwd is right when started through npm, but a service unit starts in `/`, so
 // KARKHANA_HOME exists to pin it.
-const ROOT = process.env.KARKHANA_HOME ?? process.cwd();
+const getRoot = (): string => {
+  if (process.env.KARKHANA_HOME) return process.env.KARKHANA_HOME;
+  if (process.env.VERCEL) return '/tmp';
+  return process.cwd();
+};
+const ROOT = getRoot();
 const CONFIG_PATH = path.join(ROOT, 'karkhana.config.json');
 
 function detectNamedBinary(name: string, candidates: string[]): string {
