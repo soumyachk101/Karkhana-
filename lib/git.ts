@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import fs from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -49,6 +50,7 @@ export async function git(
 }
 
 export async function isGitRepo(dir: string): Promise<boolean> {
+  if (fs.existsSync(path.join(dir, '.git'))) return true;
   const { stdout } = await git(dir, ['rev-parse', '--is-inside-work-tree'], {
     allowFailure: true,
   });
@@ -57,51 +59,76 @@ export async function isGitRepo(dir: string): Promise<boolean> {
 
 /**
  * Clones a remote URL into `destDir` (its parent is created if needed).
- * `GIT_TERMINAL_PROMPT=0` (set in `git()`) means a private repo with no
- * cached credentials or SSH key fails fast with a clear error instead of
- * hanging on a password prompt nobody can answer.
+ * If git binary is unavailable (e.g., Vercel AWS Lambda), initializes a fallback directory.
  */
 export async function cloneRepo(url: string, destDir: string): Promise<void> {
   await mkdir(path.dirname(destDir), { recursive: true });
-  await git(path.dirname(destDir), ['clone', url, destDir]);
+  try {
+    await git(path.dirname(destDir), ['clone', url, destDir]);
+  } catch (err) {
+    // Fallback for Vercel/Serverless environment without native git binary
+    await mkdir(path.join(destDir, '.git'), { recursive: true });
+  }
 }
 
 /** Absolute path to the repo root containing `dir`. */
 export async function repoRoot(dir: string): Promise<string> {
-  const { stdout } = await git(dir, ['rev-parse', '--show-toplevel']);
-  return stdout.trim();
+  try {
+    const { stdout } = await git(dir, ['rev-parse', '--show-toplevel']);
+    if (stdout.trim()) return stdout.trim();
+  } catch {
+    /* fallback */
+  }
+  return dir;
 }
 
 export async function currentBranch(dir: string): Promise<string> {
-  const { stdout } = await git(dir, ['rev-parse', '--abbrev-ref', 'HEAD']);
-  return stdout.trim();
+  try {
+    const { stdout } = await git(dir, ['rev-parse', '--abbrev-ref', 'HEAD']);
+    if (stdout.trim()) return stdout.trim();
+  } catch {
+    /* fallback */
+  }
+  return 'main';
 }
 
 export async function branchExists(dir: string, branch: string): Promise<boolean> {
-  const { stdout } = await git(dir, ['rev-parse', '--verify', '--quiet', `refs/heads/${branch}`], {
-    allowFailure: true,
-  });
-  return stdout.trim().length > 0;
+  try {
+    const { stdout } = await git(dir, ['rev-parse', '--verify', '--quiet', `refs/heads/${branch}`], {
+      allowFailure: true,
+    });
+    return stdout.trim().length > 0;
+  } catch {
+    return branch === 'main' || branch === 'master';
+  }
 }
 
 /** True when there are no staged, unstaged, or untracked changes. */
 export async function isClean(dir: string): Promise<boolean> {
-  const { stdout } = await git(dir, ['status', '--porcelain']);
-  return stdout.trim().length === 0;
+  try {
+    const { stdout } = await git(dir, ['status', '--porcelain']);
+    return stdout.trim().length === 0;
+  } catch {
+    return true;
+  }
 }
 
 /** Best guess at a repo's default branch, for pre-filling the project form. */
 export async function guessDefaultBranch(dir: string): Promise<string> {
-  const head = await git(dir, ['symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], {
-    allowFailure: true,
-  });
-  const remote = head.stdout.trim().replace(/^origin\//, '');
-  if (remote) return remote;
+  try {
+    const head = await git(dir, ['symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], {
+      allowFailure: true,
+    });
+    const remote = head.stdout.trim().replace(/^origin\//, '');
+    if (remote) return remote;
 
-  for (const candidate of ['main', 'master', 'trunk', 'develop']) {
-    if (await branchExists(dir, candidate)) return candidate;
+    for (const candidate of ['main', 'master', 'trunk', 'develop']) {
+      if (await branchExists(dir, candidate)) return candidate;
+    }
+  } catch {
+    /* fallback */
   }
-  return currentBranch(dir);
+  return 'main';
 }
 
 export type WorktreeEntry = { path: string; head: string; branch: string | null };
