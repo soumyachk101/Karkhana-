@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
 import { Public_Sans, Space_Grotesk } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/react';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Karkhana',
-  description: 'Orchestrate parallel Claude Code agents across local repos',
+  title: 'Karkhana | SaaS Multi-Agent Engine',
+  description: 'Orchestrate parallel Claude Code, Antigravity, and Codex agents across local and cloud repos',
 };
 
 // Body/UI text: a humanist sans built for clarity at small, dense sizes —
@@ -16,7 +17,10 @@ const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-space
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${publicSans.variable} ${spaceGrotesk.variable}`}>
-      <body className="h-full overflow-hidden">{children}</body>
+      <body className="h-full overflow-hidden">
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
