@@ -2,12 +2,12 @@
 
 import { Folder, Play, RefreshCcw, Sparkles, Terminal as TerminalIcon } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { TerminalView } from '@/app/components/TerminalView';
 import { TopBar } from '@/app/components/TopBar';
 import { type Project } from '@/lib/types';
 
-export default function TerminalStudioPage() {
+function TerminalStudioInner() {
   const searchParams = useSearchParams();
   const initialCwd = searchParams.get('cwd');
 
@@ -81,5 +81,13 @@ export default function TerminalStudioPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TerminalStudioPage() {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center bg-black text-emerald-400 font-mono text-[12px]">Loading Terminal Studio...</div>}>
+      <TerminalStudioInner />
+    </Suspense>
   );
 }
