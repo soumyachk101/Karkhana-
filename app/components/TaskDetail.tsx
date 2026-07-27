@@ -1,9 +1,10 @@
 'use client';
 
-import { GitMerge, Play, RotateCcw, Trash2, Upload, X, XCircle } from 'lucide-react';
+import { Code2, GitMerge, LayoutGrid, MessageSquare, Play, RotateCcw, Terminal, Trash2, Upload, X, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { STATUS_LABEL, STATUS_STYLE, duration } from '@/lib/format';
 import { MODELS, type Model, type Project, type Task, type TaskEvent } from '@/lib/types';
+import { ClaudeChatView } from './ClaudeChatView.tsx';
 import { DiffView } from './DiffView.tsx';
 import { LogStream } from './LogStream.tsx';
 
@@ -21,6 +22,7 @@ export function TaskDetail({ task, project, events, onClose, onAction }: Props) 
   const [resumePrompt, setResumePrompt] = useState('');
   const [showResume, setShowResume] = useState(false);
   const [diffKey, setDiffKey] = useState(0);
+  const [viewMode, setViewMode] = useState<'chat' | 'split' | 'logs' | 'diff'>('chat');
 
   const isRunning = task.status === 'running';
   const isQueued = task.status === 'queued';
@@ -88,8 +90,54 @@ export function TaskDetail({ task, project, events, onClose, onAction }: Props) 
           </button>
         </div>
 
-        {/* actions */}
+        {/* actions & view toggle toolbar */}
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {/* View Mode Toggle */}
+          <div className="flex overflow-hidden rounded border border-ink-600 bg-ink-900 p-0.5 text-[11px]">
+            <button
+              onClick={() => setViewMode('chat')}
+              className={`flex items-center gap-1 rounded px-2 py-0.5 transition ${
+                viewMode === 'chat' ? 'bg-forge-500 text-ink-900 font-semibold shadow' : 'text-ink-300 hover:text-ink-100'
+              }`}
+              title="Claude Code Chat Interface"
+            >
+              <MessageSquare className="h-3 w-3" />
+              Claude Chat
+            </button>
+            <button
+              onClick={() => setViewMode('split')}
+              className={`flex items-center gap-1 rounded px-2 py-0.5 transition ${
+                viewMode === 'split' ? 'bg-forge-500 text-ink-900 font-semibold shadow' : 'text-ink-300 hover:text-ink-100'
+              }`}
+              title="Split Chat & Diff View"
+            >
+              <LayoutGrid className="h-3 w-3" />
+              Split
+            </button>
+            <button
+              onClick={() => setViewMode('diff')}
+              className={`flex items-center gap-1 rounded px-2 py-0.5 transition ${
+                viewMode === 'diff' ? 'bg-forge-500 text-ink-900 font-semibold shadow' : 'text-ink-300 hover:text-ink-100'
+              }`}
+              title="Code Diff Inspector"
+            >
+              <Code2 className="h-3 w-3" />
+              Diff Only
+            </button>
+            <button
+              onClick={() => setViewMode('logs')}
+              className={`flex items-center gap-1 rounded px-2 py-0.5 transition ${
+                viewMode === 'logs' ? 'bg-forge-500 text-ink-900 font-semibold shadow' : 'text-ink-300 hover:text-ink-100'
+              }`}
+              title="Raw Stream Terminal Logs"
+            >
+              <Terminal className="h-3 w-3" />
+              Logs
+            </button>
+          </div>
+
+          <div className="mx-1 h-4 w-px bg-ink-700" />
+
           {(isRunning || isQueued) && (
             <ActionButton onClick={() => run('cancel')} busy={busy === 'cancel'} tone="danger" icon={XCircle}>
               Cancel
@@ -149,21 +197,27 @@ export function TaskDetail({ task, project, events, onClose, onAction }: Props) 
           <div className="flex-1" />
 
           {!isRunning && !isQueued && (
-            <div className="flex overflow-hidden rounded border border-ink-600">
-              {MODELS.map((m) => (
-                <button
-                  key={m}
-                  onClick={() => run('retry', { model: m })}
-                  disabled={busy !== null}
-                  title={`Retry with ${m}`}
-                  className={`px-2 py-0.5 text-[10px] capitalize outline-none transition-colors focus-visible:ring-2 focus-visible:ring-forge-500/60 disabled:opacity-40 ${
-                    task.model === m ? 'bg-forge-600 text-ink-900' : 'bg-ink-900 text-ink-300 hover:bg-ink-700'
-                  }`}
-                >
-                  {m}
-                </button>
-              ))}
-            </div>
+            <select
+              value={task.model}
+              onChange={(e) => run('retry', { model: e.target.value })}
+              disabled={busy !== null}
+              className="rounded border border-ink-600 bg-ink-900 px-2 py-0.5 text-[11px] font-medium text-forge-400 outline-none focus:border-forge-600 focus-visible:ring-2 focus-visible:ring-forge-500/50 disabled:opacity-40"
+              title="Retry task with selected model"
+            >
+              <optgroup label="Claude Code Agents">
+                <option value="sonnet">Claude Sonnet</option>
+                <option value="opus">Claude Opus</option>
+                <option value="haiku">Claude Haiku</option>
+              </optgroup>
+              <optgroup label="Antigravity Agents">
+                <option value="antigravity-flash">Antigravity Flash</option>
+                <option value="antigravity-pro">Antigravity Pro</option>
+              </optgroup>
+              <optgroup label="Codex / OpenAI Agents">
+                <option value="codex-gpt4o">Codex GPT-4o</option>
+                <option value="codex-o3-mini">Codex o3-mini</option>
+              </optgroup>
+            </select>
           )}
         </div>
 
@@ -185,13 +239,46 @@ export function TaskDetail({ task, project, events, onClose, onAction }: Props) 
 
         {(notice || task.error) && (
           <div
-            className={`animate-rise mt-2 rounded border px-2 py-1.5 text-[11px] ${
+            className={`animate-rise mt-2 rounded border px-2.5 py-2 text-[11px] ${
               notice?.tone === 'ok'
                 ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200'
                 : 'border-red-500/40 bg-red-500/10 text-red-200'
             }`}
           >
-            <p className="leading-snug">{notice?.text ?? task.error}</p>
+            <p className="leading-snug font-medium">{notice?.text ?? task.error}</p>
+
+            {/* Quick 1-click agent fallback buttons */}
+            {!isRunning && !isQueued && (
+              <div className="mt-2 rounded bg-ink-950/80 p-2 border border-ink-700/80">
+                <div className="text-[10px] text-ink-300 font-mono mb-1.5 flex items-center justify-between">
+                  <span>⚡ Quick Switch Agent Runner (Fallback to Antigravity / Codex):</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    onClick={() => run('retry', { model: 'antigravity-flash' })}
+                    disabled={busy !== null}
+                    className="flex items-center gap-1 rounded bg-amber-500/20 px-2 py-1 font-mono text-[10px] font-semibold text-amber-300 hover:bg-amber-500/30 border border-amber-500/30 transition"
+                  >
+                    🚀 Retry with Antigravity (Flash)
+                  </button>
+                  <button
+                    onClick={() => run('retry', { model: 'antigravity-pro' })}
+                    disabled={busy !== null}
+                    className="flex items-center gap-1 rounded bg-purple-500/20 px-2 py-1 font-mono text-[10px] font-semibold text-purple-300 hover:bg-purple-500/30 border border-purple-500/30 transition"
+                  >
+                    ✨ Retry with Antigravity (Pro)
+                  </button>
+                  <button
+                    onClick={() => run('retry', { model: 'codex-gpt4o' })}
+                    disabled={busy !== null}
+                    className="flex items-center gap-1 rounded bg-sky-500/20 px-2 py-1 font-mono text-[10px] font-semibold text-sky-300 hover:bg-sky-500/30 border border-sky-500/30 transition"
+                  >
+                    🤖 Retry with Codex (GPT-4o)
+                  </button>
+                </div>
+              </div>
+            )}
+
             {notice?.hint && (
               <pre className="mt-1 overflow-x-auto whitespace-pre-wrap font-mono text-[10px] text-ink-300">
                 {notice.hint}
@@ -201,14 +288,46 @@ export function TaskDetail({ task, project, events, onClose, onAction }: Props) 
         )}
       </div>
 
-      {/* split: log | diff */}
-      <div className="grid min-h-0 flex-1 grid-cols-2 overflow-hidden">
-        <LogStream events={events} live={isRunning} />
-        {hasWorktree ? (
-          <DiffView taskId={task.id} refreshKey={diffKey} />
-        ) : (
-          <div className="flex items-center justify-center border-l border-ink-700 text-[11px] text-ink-500">
-            {task.status === 'merged' ? 'Worktree removed after merge.' : 'No worktree.'}
+      {/* Main View Area */}
+      <div className="min-h-0 flex-1 overflow-hidden">
+        {viewMode === 'chat' && (
+          <ClaudeChatView
+            task={task}
+            events={events}
+            live={isRunning}
+            onSendFollowUp={task.session_id && hasWorktree ? (prompt) => run('resume', { prompt }) : undefined}
+          />
+        )}
+
+        {viewMode === 'split' && (
+          <div className="grid h-full grid-cols-2 overflow-hidden">
+            <ClaudeChatView
+              task={task}
+              events={events}
+              live={isRunning}
+              onSendFollowUp={task.session_id && hasWorktree ? (prompt) => run('resume', { prompt }) : undefined}
+            />
+            {hasWorktree ? (
+              <DiffView taskId={task.id} refreshKey={diffKey} />
+            ) : (
+              <div className="flex items-center justify-center border-l border-ink-700 text-[11px] text-ink-500">
+                {task.status === 'merged' ? 'Worktree removed after merge.' : 'No worktree.'}
+              </div>
+            )}
+          </div>
+        )}
+
+        {viewMode === 'logs' && <LogStream events={events} live={isRunning} />}
+
+        {viewMode === 'diff' && (
+          <div className="h-full overflow-hidden">
+            {hasWorktree ? (
+              <DiffView taskId={task.id} refreshKey={diffKey} />
+            ) : (
+              <div className="flex h-full items-center justify-center text-[11px] text-ink-500">
+                {task.status === 'merged' ? 'Worktree removed after merge.' : 'No worktree.'}
+              </div>
+            )}
           </div>
         )}
       </div>

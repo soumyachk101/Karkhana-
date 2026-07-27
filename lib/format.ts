@@ -105,6 +105,50 @@ export function toLogLines(event: TaskEvent): LogLine[] {
     ];
   }
 
+  if (event.type === 'item.completed' || event.type === 'item.started') {
+    const item = (payload.item ?? {}) as Record<string, unknown>;
+    const itemType = String(item.type ?? '');
+
+    if (itemType === 'agent_message' && item.text) {
+      return [{ kind: 'text', body: String(item.text) }];
+    }
+    if (itemType === 'file_change') {
+      const changes = Array.isArray(item.changes) ? (item.changes as Record<string, unknown>[]) : [];
+      const desc = changes
+        .map((c) => {
+          const file = String(c.path ?? '').split('/').slice(-2).join('/');
+          return `${c.kind ?? 'edit'} ${file}`;
+        })
+        .join(' · ');
+      return [{ kind: 'tool_use', label: 'Edit', body: desc || 'Modified files' }];
+    }
+    if (itemType === 'command_execution') {
+      return [{ kind: 'tool_use', label: 'Bash', body: String(item.command ?? '') }];
+    }
+    if (itemType === 'error' && item.message) {
+      const msg = String(item.message);
+      if (msg.includes('malformed agent role')) return [];
+      return [{ kind: 'error', label: 'error', body: msg }];
+    }
+    return [];
+  }
+
+  if (event.type === 'output') {
+    const text = String(payload.text ?? '').trim();
+    if (!text) return [];
+    return [{ kind: 'text', body: text }];
+  }
+
+  if (
+    event.type === 'thread.started' ||
+    event.type === 'turn.started' ||
+    event.type === 'turn.completed' ||
+    event.type === 'codex_event' ||
+    event.type === 'agy_event'
+  ) {
+    return [];
+  }
+
   const message = payload.message as { content?: unknown[] } | undefined;
   if (!Array.isArray(message?.content)) {
     return [{ kind: 'meta', label: event.type, body: preview(payload, 200) }];

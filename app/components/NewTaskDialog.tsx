@@ -7,15 +7,16 @@ import { MODELS, type Model, type Project } from '@/lib/types';
 type Props = {
   projects: Project[];
   defaultProjectId: string | null;
+  claudeEnabled?: boolean;
   onClose: () => void;
   onCreate: (input: { projectId: string; title: string; prompt: string; model: Model }) => Promise<void>;
 };
 
-export function NewTaskDialog({ projects, defaultProjectId, onClose, onCreate }: Props) {
+export function NewTaskDialog({ projects, defaultProjectId, claudeEnabled, onClose, onCreate }: Props) {
   const [projectId, setProjectId] = useState(defaultProjectId ?? projects[0]?.id ?? '');
   const [title, setTitle] = useState('');
   const [prompt, setPrompt] = useState('');
-  const [model, setModel] = useState<Model>('sonnet');
+  const [model, setModel] = useState<Model>('antigravity-flash');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -27,7 +28,7 @@ export function NewTaskDialog({ projects, defaultProjectId, onClose, onCreate }:
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  });
+  }, [onClose, prompt, projectId, title, model, busy]);
 
   const submit = async () => {
     if (!projectId || !prompt.trim() || busy) return;
@@ -78,19 +79,28 @@ export function NewTaskDialog({ projects, defaultProjectId, onClose, onCreate }:
               ))}
             </select>
 
-            <div className="flex overflow-hidden rounded border border-ink-600">
-              {MODELS.map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setModel(m)}
-                  className={`px-2.5 py-1.5 text-[11px] capitalize outline-none transition-colors focus-visible:ring-2 focus-visible:ring-forge-500/60 ${
-                    model === m ? 'bg-forge-600 text-ink-900' : 'bg-ink-900 text-ink-300 hover:bg-ink-700'
-                  }`}
-                >
-                  {m}
-                </button>
-              ))}
-            </div>
+            <select
+              value={model}
+              onChange={(e) => setModel(e.target.value as Model)}
+              className="rounded border border-ink-600 bg-ink-900 px-2.5 py-1.5 text-[12px] font-medium text-forge-400 outline-none focus:border-forge-600 focus-visible:ring-2 focus-visible:ring-forge-500/50"
+            >
+              <optgroup label="Antigravity Agents (Recommended)">
+                <option value="antigravity-flash">Antigravity Flash</option>
+                <option value="antigravity-pro">Antigravity Pro</option>
+              </optgroup>
+              <optgroup label="Codex / OpenAI Agents">
+                <option value="codex-gpt5.5">Codex GPT-5.5</option>
+                <option value="codex-gpt4o">Codex GPT-4o</option>
+                <option value="codex-o3-mini">Codex o3-mini</option>
+              </optgroup>
+              {claudeEnabled && (
+                <optgroup label="Claude Code Agents">
+                  <option value="sonnet">Claude Sonnet</option>
+                  <option value="opus">Claude Opus</option>
+                  <option value="haiku">Claude Haiku</option>
+                </optgroup>
+              )}
+            </select>
           </div>
 
           <input
