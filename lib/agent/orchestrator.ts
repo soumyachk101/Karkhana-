@@ -320,10 +320,14 @@ export class Orchestrator {
 
   async diff(taskId: string) {
     const task = getTask(taskId);
-    if (!task) throw new Error(`No task ${taskId}`);
+    if (!task) return { diff: '', stats: { filesChanged: 0, insertions: 0, deletions: 0 } };
     const project = getProject(task.project_id);
-    if (!project) throw new Error('Project no longer exists.');
-    return getTaskDiff(project, task);
+    if (!project) return { diff: '', stats: { filesChanged: 0, insertions: 0, deletions: 0 } };
+    try {
+      return await getTaskDiff(project, task);
+    } catch {
+      return { diff: '', stats: { filesChanged: 0, insertions: 0, deletions: 0 } };
+    }
   }
 
   /** Re-queues everything left in `queued` after a restart, oldest first. */

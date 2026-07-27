@@ -1,6 +1,6 @@
 import { handle } from '@/lib/api';
 import { orchestrator } from '@/lib/agent/orchestrator';
-import { getProject } from '@/lib/repo/projects';
+import { createProject, getProject, listProjects } from '@/lib/repo/projects';
 import { createTask, listTasks } from '@/lib/repo/tasks';
 import { MODELS, type Model } from '@/lib/types';
 
@@ -20,15 +20,28 @@ export async function POST(req: Request) {
       model?: Model;
     };
 
-    if (!body.projectId) throw new Error('projectId is required.');
+    let targetProjectId = body.projectId;
+    let project = targetProjectId ? getProject(targetProjectId) : null;
+
+    if (!project) {
+      const allProjects = listProjects();
+      if (allProjects.length > 0) {
+        project = allProjects[0];
+        targetProjectId = project.id;
+      } else {
+        // Auto-heal by registering default project
+        project = await createProject({ path: process.cwd(), name: 'Default Workspace' });
+        targetProjectId = project.id;
+      }
+    }
+
     if (!body.prompt?.trim()) throw new Error('A prompt is required.');
-    if (!getProject(body.projectId)) throw new Error(`No project ${body.projectId}`);
     if (body.model && !MODELS.includes(body.model)) {
       throw new Error(`Unknown model "${body.model}".`);
     }
 
     const task = createTask({
-      projectId: body.projectId,
+      projectId: targetProjectId!,
       title: body.title ?? '',
       prompt: body.prompt,
       model: body.model,
