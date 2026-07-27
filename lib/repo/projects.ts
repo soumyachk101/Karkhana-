@@ -48,6 +48,11 @@ export function getProjectByPath(p: string): Project | null {
   return (getDb().prepare('SELECT * FROM projects WHERE path = ?').get(p) as Project) ?? null;
 }
 
+export function updateProjectBaseBranch(id: string, baseBranch: string): Project | null {
+  getDb().prepare('UPDATE projects SET base_branch = ? WHERE id = ?').run(baseBranch, id);
+  return getProject(id);
+}
+
 /**
  * Registers a repo. `input.path` may be a local path pointing anywhere inside
  * the repo, or a remote URL (`https://github.com/...`, `git@...`) — a remote
