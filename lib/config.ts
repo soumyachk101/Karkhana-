@@ -215,6 +215,12 @@ export function checkClaudeBinary(): { ok: boolean; reason?: string } {
 /** Resolved worktree directory for a task, given its project. */
 export function worktreePathFor(projectPath: string, taskId: string): string {
   const { worktreeRoot } = getConfig();
-  const base = worktreeRoot ?? path.join(path.dirname(projectPath), '.karkhana');
+  if (process.env.VERCEL) {
+    return path.join('/tmp', '.karkhana', taskId);
+  }
+  let base = worktreeRoot ?? path.join(path.dirname(projectPath), '.karkhana');
+  if (base.startsWith('/var')) {
+    base = path.join('/tmp', '.karkhana');
+  }
   return path.join(base, taskId);
 }
