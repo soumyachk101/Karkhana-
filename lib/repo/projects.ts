@@ -48,7 +48,16 @@ async function resolveLocalPath(input: string): Promise<string> {
 }
 
 export function listProjects(): Project[] {
-  return getDb().prepare('SELECT * FROM projects ORDER BY created_at ASC').all() as Project[];
+  const rows = getDb().prepare('SELECT * FROM projects ORDER BY created_at ASC').all() as Project[];
+  const seen = new Set<string>();
+  const unique: Project[] = [];
+  for (const p of rows) {
+    if (!seen.has(p.path)) {
+      seen.add(p.path);
+      unique.push(p);
+    }
+  }
+  return unique;
 }
 
 export function getProject(id: string): Project | null {
