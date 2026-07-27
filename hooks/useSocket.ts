@@ -26,6 +26,13 @@ export function useSocket(onFrame: (frame: ServerFrame) => void) {
 
     const connect = () => {
       if (closedRef.current) return;
+
+      // Vercel Serverless environment does not support WebSockets (ws://)
+      if (typeof window !== 'undefined' && location.host.includes('.vercel.app')) {
+        setConnected(false);
+        return;
+      }
+
       const url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
       const socket = new WebSocket(url);
       socketRef.current = socket;
