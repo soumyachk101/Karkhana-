@@ -46,6 +46,64 @@ function patchTask(taskId: string, patch: Partial<Task>): Task {
   return task;
 }
 
+function executeBuiltinFallback(task: Task, cwd: string, opts: { resume?: boolean }): RunHandle {
+  patchTask(task.id, {
+    status: 'running',
+    started_at: Date.now(),
+    ended_at: null,
+    pid: 9999,
+    exit_code: null,
+    error: null,
+  });
+  record(task.id, 'lifecycle', {
+    kind: opts.resume ? 'resumed' : 'spawned',
+    pid: 9999,
+    cwd,
+    model: task.model,
+    mode: 'builtin_cloud_agent',
+  });
+
+  const done = new Promise<RunOutcome>(async (resolve) => {
+    try {
+      const { isError, result } = await runBuiltinAgent(task.model, task.prompt, cwd, (frame) => {
+        record(task.id, (frame.type as string) || 'assistant', frame);
+      });
+      const outcome: RunOutcome = {
+        status: isError ? 'failed' : 'needs_review',
+        exitCode: isError ? 1 : 0,
+        error: isError ? result : null,
+      };
+      if (!isError) {
+        record(task.id, 'result', { type: 'result', is_error: false, result });
+      }
+      patchTask(task.id, {
+        status: outcome.status,
+        ended_at: Date.now(),
+        exit_code: outcome.exitCode,
+        error: outcome.error,
+        pid: null,
+      });
+      resolve(outcome);
+    } catch (err) {
+      const outcome: RunOutcome = {
+        status: 'failed',
+        exitCode: 1,
+        error: (err as Error).message,
+      };
+      patchTask(task.id, {
+        status: 'failed',
+        ended_at: Date.now(),
+        exit_code: 1,
+        error: (err as Error).message,
+        pid: null,
+      });
+      resolve(outcome);
+    }
+  });
+
+  return { taskId: task.id, pid: 9999, cancel: () => {}, done };
+}
+
 export function runAgent(
   project: Project,
   task: Task,
@@ -93,15 +151,24 @@ export function runAgent(
       '--dangerously-skip-permissions',
     ];
 
-    let child: ChildProcessByStdio<null, Readable, Readable>;
+    let child: ChildProcessByStdio<null, Readable, Readable> | null = null;
+    let spawnFailed = false;
     try {
-      child = spawn(agyBin, args, {
-        cwd,
-        env: { ...process.env },
-        stdio: ['ignore', 'pipe', 'pipe'],
-      });
-    } catch (err) {
-      return failFast(task.id, `Failed to spawn agy: ${(err as Error).message}`);
+      if (process.env.VERCEL || !fs.existsSync(agyBin)) {
+        spawnFailed = true;
+      } else {
+        child = spawn(agyBin, args, {
+          cwd,
+          env: { ...process.env },
+          stdio: ['ignore', 'pipe', 'pipe'],
+        });
+      }
+    } catch {
+      spawnFailed = true;
+    }
+
+    if (spawnFailed || !child) {
+      return executeBuiltinFallback(task, cwd, opts);
     }
 
     patchTask(task.id, {
@@ -192,15 +259,24 @@ export function runAgent(
       task.prompt,
     ];
 
-    let child: ChildProcessByStdio<null, Readable, Readable>;
+    let child: ChildProcessByStdio<null, Readable, Readable> | null = null;
+    let spawnFailed = false;
     try {
-      child = spawn(codexBin, args, {
-        cwd,
-        env: { ...process.env },
-        stdio: ['ignore', 'pipe', 'pipe'],
-      });
-    } catch (err) {
-      return failFast(task.id, `Failed to spawn codex: ${(err as Error).message}`);
+      if (process.env.VERCEL || !fs.existsSync(codexBin)) {
+        spawnFailed = true;
+      } else {
+        child = spawn(codexBin, args, {
+          cwd,
+          env: { ...process.env },
+          stdio: ['ignore', 'pipe', 'pipe'],
+        });
+      }
+    } catch {
+      spawnFailed = true;
+    }
+
+    if (spawnFailed || !child) {
+      return executeBuiltinFallback(task, cwd, opts);
     }
 
     patchTask(task.id, {
