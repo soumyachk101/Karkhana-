@@ -51,10 +51,21 @@ function detectNamedBinary(name: string, candidates: string[]): string {
   return '';
 }
 
+const safeHomedir = (): string => {
+  try {
+    const h = os.homedir();
+    if (h && fs.existsSync(h)) return h;
+  } catch {
+    /* fallback below */
+  }
+  return '/tmp';
+};
+
 function detectClaudeBinary(): string {
+  const home = safeHomedir();
   return detectNamedBinary('claude', [
-    path.join(os.homedir(), '.claude', 'local', 'claude'),
-    path.join(os.homedir(), '.local', 'bin', 'claude'),
+    path.join(home, '.claude', 'local', 'claude'),
+    path.join(home, '.local', 'bin', 'claude'),
     '/opt/homebrew/bin/claude',
     '/usr/local/bin/claude',
     '/usr/bin/claude',
@@ -62,8 +73,9 @@ function detectClaudeBinary(): string {
 }
 
 function detectAntigravityBinary(): string {
+  const home = safeHomedir();
   const found = detectNamedBinary('agy', [
-    path.join(os.homedir(), '.local', 'bin', 'agy'),
+    path.join(home, '.local', 'bin', 'agy'),
     '/opt/homebrew/bin/agy',
     '/usr/local/bin/agy',
     '/usr/bin/agy',
@@ -71,8 +83,8 @@ function detectAntigravityBinary(): string {
   if (found) return found;
 
   return detectNamedBinary('antigravity', [
-    path.join(os.homedir(), '.antigravity', 'bin', 'antigravity'),
-    path.join(os.homedir(), '.local', 'bin', 'antigravity'),
+    path.join(home, '.antigravity', 'bin', 'antigravity'),
+    path.join(home, '.local', 'bin', 'antigravity'),
     '/opt/homebrew/bin/antigravity',
     '/usr/local/bin/antigravity',
     '/usr/bin/antigravity',
@@ -80,9 +92,10 @@ function detectAntigravityBinary(): string {
 }
 
 function detectCodexBinary(): string {
+  const home = safeHomedir();
   return detectNamedBinary('codex', [
-    path.join(os.homedir(), '.codex', 'bin', 'codex'),
-    path.join(os.homedir(), '.local', 'bin', 'codex'),
+    path.join(home, '.codex', 'bin', 'codex'),
+    path.join(home, '.local', 'bin', 'codex'),
     '/opt/homebrew/bin/codex',
     '/usr/local/bin/codex',
     '/usr/bin/codex',

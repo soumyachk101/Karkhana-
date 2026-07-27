@@ -16,15 +16,40 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: Request) {
   return handle(() => {
     const requested = new URL(req.url).searchParams.get('path');
-    const target = path.resolve(requested?.trim() || os.homedir());
-
-    let stat: fs.Stats;
+    let fallbackHome = process.cwd();
     try {
-      stat = fs.statSync(target);
+      if (fs.existsSync(os.homedir())) fallbackHome = os.homedir();
     } catch {
-      throw new Error(`${target} does not exist or isn't accessible.`);
+      fallbackHome = process.cwd();
     }
-    if (!stat.isDirectory()) throw new Error(`${target} is not a folder.`);
+
+    const target = path.resolve(requested?.trim() || fallbackHome);
+
+    let stat: fs.Stats | null = null;
+    try {
+      if (fs.existsSync(target)) {
+        stat = fs.statSync(target);
+      }
+    } catch {
+      stat = null;
+    }
+
+    if (!stat || !stat.isDirectory()) {
+      // Fallback to process.cwd() or /tmp on Vercel
+      const fallbackTarget = process.cwd();
+      const fallbackEntries = fs
+        .readdirSync(fallbackTarget, { withFileTypes: true })
+        .filter((e) => e.isDirectory() && !e.name.startsWith('.'))
+        .map((e) => e.name)
+        .sort((a, b) => a.localeCompare(b));
+
+      return {
+        path: fallbackTarget,
+        parent: null,
+        isGitRepo: fs.existsSync(path.join(fallbackTarget, '.git')),
+        entries: fallbackEntries,
+      };
+    }
 
     const entries = fs
       .readdirSync(target, { withFileTypes: true })

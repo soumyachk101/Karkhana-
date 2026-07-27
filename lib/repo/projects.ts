@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { getDb, newId } from '../db.ts';
@@ -10,7 +11,17 @@ const REMOTE_URL_RE = /^(https?:\/\/|git@|ssh:\/\/|git:\/\/|file:\/\/)/;
  * name. Overridable the same way as `KARKHANA_HOME` (see lib/config.ts) —
  * mainly so tests don't clone into the real machine's home directory.
  */
-const CLONE_ROOT = process.env.KARKHANA_CLONE_ROOT ?? path.join(os.homedir(), 'karkhana-repos');
+const getCloneRoot = (): string => {
+  if (process.env.KARKHANA_CLONE_ROOT) return process.env.KARKHANA_CLONE_ROOT;
+  try {
+    if (process.env.VERCEL || !fs.existsSync(os.homedir())) {
+      return path.join('/tmp', 'karkhana-repos');
+    }
+  } catch {
+    return path.join('/tmp', 'karkhana-repos');
+  }
+  return path.join(os.homedir(), 'karkhana-repos');
+};
 
 function repoNameFromUrl(url: string): string {
   const cleaned = url.trim().replace(/\.git$/, '').replace(/\/+$/, '');
@@ -29,7 +40,7 @@ async function resolveLocalPath(input: string): Promise<string> {
   if (!REMOTE_URL_RE.test(trimmed)) {
     return path.resolve(trimmed.replace(/^~(?=$|\/)/, process.env.HOME ?? '~'));
   }
-  const destDir = path.join(CLONE_ROOT, repoNameFromUrl(trimmed));
+  const destDir = path.join(getCloneRoot(), repoNameFromUrl(trimmed));
   if (!(await isGitRepo(destDir))) {
     await cloneRepo(trimmed, destDir);
   }
