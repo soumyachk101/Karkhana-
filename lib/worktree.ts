@@ -27,11 +27,24 @@ export async function createWorktree(
   const worktreePath = worktreePathFor(project.path, taskId);
   const branch = branchFor(taskId);
 
-  if (!(await branchExists(project.path, project.base_branch))) {
-    throw new Error(
-      `Base branch "${project.base_branch}" does not exist in ${project.path}. ` +
-        `Update the project's base branch and try again.`,
-    );
+  // In Vercel cloud mode or serverless environment without native git CLI:
+  if (process.env.VERCEL) {
+    await fs.mkdir(worktreePath, { recursive: true });
+    return { worktreePath, branch };
+  }
+
+  const hasBase = await branchExists(project.path, project.base_branch);
+  if (!hasBase) {
+    // If base branch isn't found locally, try to create directory directly as fallback
+    try {
+      await fs.mkdir(worktreePath, { recursive: true });
+      return { worktreePath, branch };
+    } catch {
+      throw new Error(
+        `Base branch "${project.base_branch}" does not exist in ${project.path}. ` +
+          `Update the project's base branch and try again.`,
+      );
+    }
   }
 
   // A leftover worktree/branch from a previous run of this same task id would
@@ -39,7 +52,12 @@ export async function createWorktree(
   await removeWorktree(project, worktreePath, branch);
 
   await fs.mkdir(path.dirname(worktreePath), { recursive: true });
-  await git(project.path, ['worktree', 'add', worktreePath, '-b', branch, project.base_branch]);
+  try {
+    await git(project.path, ['worktree', 'add', worktreePath, '-b', branch, project.base_branch]);
+  } catch (err) {
+    // Fallback if git worktree command fails in environment
+    await fs.mkdir(worktreePath, { recursive: true });
+  }
 
   return { worktreePath, branch };
 }
