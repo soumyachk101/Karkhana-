@@ -219,9 +219,9 @@ export function TopBar({
         </span>
       )}
 
-      <span className="flex items-center gap-1.5 text-[11px] text-ink-400" title={connected ? 'Live' : 'Reconnecting…'}>
-        <span className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-emerald-400' : 'bg-red-400 animate-live'}`} />
-        {connected ? 'live' : 'offline'}
+      <span className="flex items-center gap-1.5 text-[11px] text-ink-400 font-mono" title={connected ? 'WebSocket Live' : 'HTTP Cloud Polling Active'}>
+        <span className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-emerald-400 animate-pulse' : 'bg-emerald-400/80'}`} />
+        <span>{connected ? 'live (ws)' : 'live (cloud)'}</span>
       </span>
     </header>
   );

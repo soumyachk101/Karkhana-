@@ -109,6 +109,20 @@ export default function Page() {
     })().catch((err) => console.error('[karkhana] initial load failed', err));
   }, [refreshSystem]);
 
+  // HTTP Fallback Polling when WebSockets are unavailable (e.g. Vercel Serverless)
+  useEffect(() => {
+    if (connected) return;
+    const interval = setInterval(() => {
+      void refreshSystem().catch(() => {});
+      void api<{ tasks: Task[] }>('/api/tasks')
+        .then(({ tasks: polled }) => {
+          setTasks((prev) => polled.reduce((acc, known) => upsertTask(acc, known, true), prev));
+        })
+        .catch(() => {});
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [connected, refreshSystem]);
+
   // --- task subscription -------------------------------------------------
   const previousTaskRef = useRef<string | null>(null);
   useEffect(() => {
