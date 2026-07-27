@@ -88,6 +88,8 @@ export function runAgent(
       task.prompt,
       '--model',
       agyModel,
+      '--add-dir',
+      cwd,
       '--dangerously-skip-permissions',
     ];
 
