@@ -17,6 +17,7 @@ async function browse(target?: string): Promise<BrowseResult> {
 export function FolderBrowser({ onClose, onSelect }: { onClose: () => void; onSelect: (path: string) => void }) {
   const [state, setState] = useState<BrowseResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [manualInput, setManualInput] = useState('');
 
   const load = (target?: string) => {
     setError(null);
@@ -49,6 +50,28 @@ export function FolderBrowser({ onClose, onSelect }: { onClose: () => void; onSe
           >
             <X className="h-3.5 w-3.5" strokeWidth={2.25} />
           </button>
+        </div>
+
+        <div className="p-3 border-b border-ink-700 bg-ink-950/60 space-y-2">
+          <label className="block text-[11px] font-medium text-ink-300">
+            Paste Local Path or GitHub Remote Repository URL:
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={manualInput}
+              onChange={(e) => setManualInput(e.target.value)}
+              placeholder="/Users/username/project or https://github.com/user/repo.git"
+              className="flex-1 rounded border border-ink-700 bg-black px-3 py-1.5 font-mono text-[11px] text-ink-100 placeholder-ink-600 outline-none focus:border-forge-500"
+            />
+            <button
+              onClick={() => manualInput.trim() && onSelect(manualInput.trim())}
+              disabled={!manualInput.trim()}
+              className="rounded bg-forge-500 px-3 py-1.5 font-sans text-[11px] font-semibold text-ink-900 hover:bg-forge-400 disabled:opacity-40 transition"
+            >
+              Add Project
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 border-b border-ink-700 bg-ink-900/40 px-3 py-1.5">
