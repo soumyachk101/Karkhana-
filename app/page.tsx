@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSocket } from '@/hooks/useSocket';
 import type { Model, Project, ServerFrame, Task, TaskEvent } from '@/lib/types';
+import { ApiKeyDialog } from './components/ApiKeyDialog.tsx';
 import { CleanupPanel, type OrphanWorktree } from './components/CleanupPanel.tsx';
 import { KanbanBoard } from './components/KanbanBoard.tsx';
 import { NewTaskDialog } from './components/NewTaskDialog.tsx';
@@ -50,6 +51,8 @@ export default function Page() {
   const [orphans, setOrphans] = useState<OrphanWorktree[]>([]);
   const [showCleanup, setShowCleanup] = useState(false);
   const [showNewTask, setShowNewTask] = useState(false);
+  const [showApiKeys, setShowApiKeys] = useState(false);
+  const [claudeEnabled, setClaudeEnabled] = useState(false);
 
   // Ticks once a second so running-task durations count up without needing a
   // frame from the server.
@@ -83,11 +86,13 @@ export default function Page() {
       queued: number;
       limit: number;
       binary: { ok: boolean; reason?: string };
+      config: { claudeEnabled?: boolean };
       boot: { orphanWorktrees: OrphanWorktree[] } | null;
     }>('/api/system');
     setStats({ running: system.running, queued: system.queued, limit: system.limit });
     setBinary(system.binary);
     setOrphans(system.boot?.orphanWorktrees ?? []);
+    setClaudeEnabled(system.config?.claudeEnabled ?? false);
   }, []);
 
   useEffect(() => {
@@ -204,8 +209,14 @@ export default function Page() {
     () => (selectedProjectId ? tasks.filter((t) => t.project_id === selectedProjectId) : tasks),
     [tasks, selectedProjectId],
   );
-  const selectedTask = tasks.find((t) => t.id === selectedTaskId) ?? null;
-  const selectedProject = projects.find((p) => p.id === selectedTask?.project_id);
+  const selectedTask = useMemo(() => {
+    const found = tasks.find((t) => t.id === selectedTaskId) ?? null;
+    if (found && selectedProjectId && found.project_id !== selectedProjectId) {
+      return null;
+    }
+    return found;
+  }, [tasks, selectedTaskId, selectedProjectId]);
+  const selectedProject = projects.find((p) => p.id === (selectedProjectId ?? selectedTask?.project_id));
 
   return (
     <div className="flex h-full flex-col">
@@ -219,6 +230,7 @@ export default function Page() {
         orphanCount={orphans.length}
         onChangeLimit={changeLimit}
         onShowCleanup={() => setShowCleanup(true)}
+        onShowApiKeys={() => setShowApiKeys(true)}
       />
 
       <div className="flex min-h-0 flex-1">
@@ -226,7 +238,10 @@ export default function Page() {
           projects={projects}
           tasks={tasks}
           selectedId={selectedProjectId}
-          onSelect={setSelectedProjectId}
+          onSelect={(id) => {
+            setSelectedProjectId(id);
+            setSelectedTaskId(null);
+          }}
           onAdd={addProject}
           onRemove={removeProject}
         />
@@ -277,6 +292,7 @@ export default function Page() {
         <NewTaskDialog
           projects={projects}
           defaultProjectId={selectedProjectId}
+          claudeEnabled={claudeEnabled}
           onClose={() => setShowNewTask(false)}
           onCreate={createTask}
         />
@@ -284,6 +300,16 @@ export default function Page() {
 
       {showCleanup && (
         <CleanupPanel orphans={orphans} onClose={() => setShowCleanup(false)} onRemove={removeOrphan} />
+      )}
+
+      {showApiKeys && (
+        <ApiKeyDialog
+          onClose={() => setShowApiKeys(false)}
+          onSave={async (keys) => {
+            await api('/api/config', { method: 'PATCH', body: JSON.stringify(keys) });
+            await refreshSystem();
+          }}
+        />
       )}
     </div>
   );

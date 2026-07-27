@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertCircle, AlertTriangle, SlidersHorizontal } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Key, SlidersHorizontal } from 'lucide-react';
 import { useState } from 'react';
 
 /** Inline brand mark — the same three-bars-lit concept as app/icon.svg, so the
@@ -26,6 +26,7 @@ type Props = {
   orphanCount: number;
   onChangeLimit: (limit: number) => void;
   onShowCleanup: () => void;
+  onShowApiKeys: () => void;
 };
 
 export function TopBar({
@@ -38,6 +39,7 @@ export function TopBar({
   orphanCount,
   onChangeLimit,
   onShowCleanup,
+  onShowApiKeys,
 }: Props) {
   const [editing, setEditing] = useState(false);
   const atCapacity = running >= limit && limit > 0;
@@ -52,43 +54,64 @@ export function TopBar({
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 rounded-md border border-ink-600 bg-gradient-to-b from-ink-800 to-ink-800/60 px-2.5 py-1.5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.03)]">
-        <SlidersHorizontal className="h-3 w-3 text-ink-400" strokeWidth={2.25} />
+      <div className="flex items-center gap-1.5 rounded-md border border-ink-600/80 bg-gradient-to-b from-ink-800 to-ink-850 px-2.5 py-1 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.03)]">
+        <SlidersHorizontal className="h-3.5 w-3.5 text-forge-400" strokeWidth={2.25} />
         <span
-          className={`h-1.5 w-1.5 rounded-full ${running > 0 ? 'bg-forge-500 animate-live animate-ember' : 'bg-ink-500'}`}
+          className={`h-2 w-2 rounded-full ${running > 0 ? 'bg-forge-500 animate-live animate-ember' : 'bg-ink-500'}`}
         />
-        <span className="text-[12px] tabular-nums">
-          <span className={atCapacity ? 'text-forge-400' : 'text-ink-100'}>{running}</span>
-          <span className="text-ink-400"> / </span>
+        <span className="text-[12px] tabular-nums font-mono">
+          <span className={atCapacity ? 'text-forge-400 font-semibold' : 'text-ink-100'}>{running}</span>
+          <span className="text-ink-500"> / </span>
           {editing ? (
-            <input
-              autoFocus
-              type="number"
-              min={1}
-              max={16}
-              defaultValue={limit}
-              onBlur={(e) => {
-                const next = Number(e.target.value);
-                if (next >= 1 && next !== limit) onChangeLimit(next);
-                setEditing(false);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') e.currentTarget.blur();
-                if (e.key === 'Escape') setEditing(false);
-              }}
-              className="w-10 rounded bg-ink-700 px-1 text-center text-ink-50 outline-none focus-visible:ring-2 focus-visible:ring-forge-500/70"
-            />
+            <div className="inline-flex items-center gap-1">
+              <input
+                autoFocus
+                type="number"
+                min={1}
+                max={999}
+                defaultValue={limit}
+                onBlur={(e) => {
+                  const next = Number(e.target.value);
+                  if (next >= 1 && next !== limit) onChangeLimit(next);
+                  setEditing(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') e.currentTarget.blur();
+                  if (e.key === 'Escape') setEditing(false);
+                }}
+                className="w-12 rounded bg-ink-700 px-1 py-0.5 text-center text-[12px] font-semibold text-forge-400 outline-none focus-visible:ring-2 focus-visible:ring-forge-500/70"
+              />
+              <div className="flex items-center gap-0.5 text-[10px]">
+                {[5, 10, 25, 50, 100].map((preset) => (
+                  <button
+                    key={preset}
+                    onClick={() => {
+                      onChangeLimit(preset);
+                      setEditing(false);
+                    }}
+                    className={`rounded px-1 py-0.5 font-mono transition ${
+                      limit === preset
+                        ? 'bg-forge-500 text-ink-900 font-bold'
+                        : 'bg-ink-700 text-ink-300 hover:bg-ink-600 hover:text-ink-100'
+                    }`}
+                    title={`Set limit to ${preset}`}
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+            </div>
           ) : (
             <button
               onClick={() => setEditing(true)}
-              className="rounded text-ink-200 underline decoration-ink-500 decoration-dotted underline-offset-2 outline-none hover:text-ink-50 focus-visible:ring-2 focus-visible:ring-forge-500/70"
-              title="Concurrency limit — click to change"
+              className="rounded font-semibold text-forge-400 hover:underline decoration-forge-500 decoration-dotted underline-offset-2 outline-none hover:text-forge-300 focus-visible:ring-2 focus-visible:ring-forge-500/70"
+              title="Concurrency limit — click to change (supports unlimited)"
             >
-              {limit}
+              {limit >= 500 ? '∞ Unlimited' : limit}
             </button>
           )}
         </span>
-        <span className="text-[11px] text-ink-400">agents</span>
+        <span className="text-[11px] font-medium text-ink-400">parallel agents</span>
       </div>
 
       {queued > 0 && (
@@ -98,6 +121,15 @@ export function TopBar({
       )}
 
       <div className="flex-1" />
+
+      <button
+        onClick={onShowApiKeys}
+        className="flex items-center gap-1.5 rounded-md border border-forge-500/40 bg-forge-500/10 px-2.5 py-1 text-[11px] font-medium text-forge-400 outline-none transition hover:bg-forge-500/20 focus-visible:ring-2 focus-visible:ring-forge-400/70"
+        title="Configure Anthropic / OpenAI API Keys"
+      >
+        <Key className="h-3 w-3" strokeWidth={2.25} />
+        API Keys
+      </button>
 
       {orphanCount > 0 && (
         <button
@@ -115,7 +147,7 @@ export function TopBar({
           title={binaryReason}
         >
           <AlertCircle className="h-3 w-3" strokeWidth={2.25} />
-          Claude binary not found
+          Agent binary not found
         </span>
       )}
 

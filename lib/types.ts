@@ -8,7 +8,16 @@ export const TASK_STATUSES = [
 ] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 
-export const MODELS = ['haiku', 'sonnet', 'opus'] as const;
+export const MODELS = [
+  'antigravity-flash',
+  'antigravity-pro',
+  'codex-gpt5.5',
+  'codex-gpt4o',
+  'codex-o3-mini',
+  'sonnet',
+  'opus',
+  'haiku',
+] as const;
 export type Model = (typeof MODELS)[number];
 
 export type Project = {
@@ -41,7 +50,7 @@ export type Task = {
  * Event types we persist. `system`/`assistant`/`user`/`result` mirror Claude
  * Code's stream-json shapes verbatim; `stderr` and `lifecycle` are ours.
  */
-export type EventType = 'system' | 'assistant' | 'user' | 'result' | 'stderr' | 'lifecycle';
+export type EventType = 'system' | 'assistant' | 'user' | 'result' | 'stderr' | 'lifecycle' | string;
 
 export type TaskEvent = {
   id: number;

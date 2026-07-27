@@ -123,11 +123,34 @@ export class Orchestrator {
     this.active.set(task.id, handle);
     this.publishStats();
 
-    void handle.done.finally(() => {
-      this.active.delete(task.id);
-      this.publishStats();
-      void this.drain();
-    });
+    void handle.done
+      .then((outcome) => {
+        const errStr = outcome.error?.toLowerCase() ?? '';
+        const isQuotaError =
+          errStr.includes('subscription') ||
+          errStr.includes('rate') ||
+          errStr.includes('limit') ||
+          errStr.includes('429') ||
+          errStr.includes('quota');
+
+        if (outcome.status === 'failed' && isQuotaError && !ready.model.startsWith('antigravity')) {
+          const ev = appendEvent(task.id, 'lifecycle', {
+            kind: 'auto_fallback',
+            reason: outcome.error,
+            fromModel: ready.model,
+            toModel: 'antigravity-flash',
+          });
+          publish({ type: 'event', taskId: task.id, event: ev });
+          setTimeout(() => {
+            void this.retry(task.id, { model: 'antigravity-flash' });
+          }, 600);
+        }
+      })
+      .finally(() => {
+        this.active.delete(task.id);
+        this.publishStats();
+        void this.drain();
+      });
   }
 
   private fail(task: Task, error: string): void {
@@ -174,6 +197,15 @@ export class Orchestrator {
     const project = getProject(task.project_id);
     if (project) await removeWorktree(project, task.worktree_path, task.branch);
 
+    const config = getConfig();
+    const errStr = task.error?.toLowerCase() ?? '';
+    const isSubscriptionDisabled = errStr.includes('subscription') || errStr.includes('disabled');
+
+    let targetModel = opts.model ?? task.model;
+    if (isSubscriptionDisabled && ['sonnet', 'opus', 'haiku'].includes(targetModel) && !config.anthropicApiKey) {
+      targetModel = 'antigravity-flash';
+    }
+
     const updated = updateTask(taskId, {
       worktree_path: null,
       branch: null,
@@ -182,7 +214,7 @@ export class Orchestrator {
       error: null,
       started_at: null,
       ended_at: null,
-      ...(opts.model ? { model: opts.model } : {}),
+      model: targetModel,
     });
     publish({ type: 'status', taskId, task: updated });
 

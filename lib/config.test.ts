@@ -18,11 +18,11 @@ function resetConfig(): void {
 await test('getConfig returns defaults and persists them to disk on first read', () => {
   resetConfig();
   const config = getConfig();
-  assert.equal(config.concurrency, 3);
+  assert.equal(config.concurrency, 10);
   assert.equal(config.worktreeRoot, null);
   assert.ok(fs.existsSync(configPath));
   const onDisk = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-  assert.equal(onDisk.concurrency, 3);
+  assert.equal(onDisk.concurrency, 10);
 });
 
 await test('updateConfig merges a patch and persists it; getConfig reflects the cached value', () => {
@@ -74,10 +74,10 @@ await test('updateConfig accepts worktreeRoot as a string or an explicit null', 
 await test('checkClaudeBinary reports a clear reason when no binary is configured', () => {
   resetConfig();
   getConfig();
-  updateConfig({ claudeBinPath: '' });
+  updateConfig({ claudeBinPath: '', antigravityBinPath: '', codexBinPath: '' });
   const result = checkClaudeBinary();
   assert.equal(result.ok, false);
-  assert.match(result.reason ?? '', /no claude code binary/i);
+  assert.match(result.reason ?? '', /no agent runner binary/i);
 });
 
 await test('checkClaudeBinary reports a clear reason when the configured path is not executable', () => {
@@ -85,7 +85,7 @@ await test('checkClaudeBinary reports a clear reason when the configured path is
   getConfig();
   const notExecutable = path.join(process.env.KARKHANA_HOME!, 'not-a-binary');
   fs.writeFileSync(notExecutable, 'nope');
-  updateConfig({ claudeBinPath: notExecutable });
+  updateConfig({ claudeBinPath: notExecutable, antigravityBinPath: '', codexBinPath: '' });
   const result = checkClaudeBinary();
   assert.equal(result.ok, false);
   assert.match(result.reason ?? '', /missing or not executable/);

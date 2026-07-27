@@ -7,6 +7,18 @@ import { holder } from './singleton.ts';
 export type KarkhanaConfig = {
   /** Absolute path to the Claude Code binary. Never assumed to be on PATH. */
   claudeBinPath: string;
+  /** Absolute path to the Antigravity Agent binary. */
+  antigravityBinPath: string;
+  /** Absolute path to the OpenAI Codex binary. */
+  codexBinPath: string;
+  /** Whether Claude Code agents are enabled. Set to false when subscription is inactive. */
+  claudeEnabled: boolean;
+  /** Custom Anthropic API Key (bypasses organization subscription restrictions). */
+  anthropicApiKey?: string;
+  /** Custom OpenAI API Key. */
+  openaiApiKey?: string;
+  /** Custom Gemini / Antigravity API Key. */
+  geminiApiKey?: string;
   /** Max agents running at once; the rest queue. */
   concurrency: number;
   /**
@@ -23,23 +35,14 @@ export type KarkhanaConfig = {
 const ROOT = process.env.KARKHANA_HOME ?? process.cwd();
 const CONFIG_PATH = path.join(ROOT, 'karkhana.config.json');
 
-/** Places Claude Code commonly lands, checked when it isn't on PATH. */
-const CANDIDATE_BINARIES = [
-  path.join(os.homedir(), '.claude', 'local', 'claude'),
-  path.join(os.homedir(), '.local', 'bin', 'claude'),
-  '/opt/homebrew/bin/claude',
-  '/usr/local/bin/claude',
-  '/usr/bin/claude',
-];
-
-function detectClaudeBinary(): string {
+function detectNamedBinary(name: string, candidates: string[]): string {
   try {
-    const found = execFileSync('which', ['claude'], { encoding: 'utf8' }).trim();
+    const found = execFileSync('which', [name], { encoding: 'utf8' }).trim();
     if (found) return found;
   } catch {
-    // not on PATH — fall through to the candidate list
+    // not on PATH
   }
-  for (const candidate of CANDIDATE_BINARIES) {
+  for (const candidate of candidates) {
     try {
       fs.accessSync(candidate, fs.constants.X_OK);
       return candidate;
@@ -47,14 +50,57 @@ function detectClaudeBinary(): string {
       /* keep looking */
     }
   }
-  // Leave it empty rather than guessing; the UI surfaces this as a setup error.
   return '';
+}
+
+function detectClaudeBinary(): string {
+  return detectNamedBinary('claude', [
+    path.join(os.homedir(), '.claude', 'local', 'claude'),
+    path.join(os.homedir(), '.local', 'bin', 'claude'),
+    '/opt/homebrew/bin/claude',
+    '/usr/local/bin/claude',
+    '/usr/bin/claude',
+  ]);
+}
+
+function detectAntigravityBinary(): string {
+  const found = detectNamedBinary('agy', [
+    path.join(os.homedir(), '.local', 'bin', 'agy'),
+    '/opt/homebrew/bin/agy',
+    '/usr/local/bin/agy',
+    '/usr/bin/agy',
+  ]);
+  if (found) return found;
+
+  return detectNamedBinary('antigravity', [
+    path.join(os.homedir(), '.antigravity', 'bin', 'antigravity'),
+    path.join(os.homedir(), '.local', 'bin', 'antigravity'),
+    '/opt/homebrew/bin/antigravity',
+    '/usr/local/bin/antigravity',
+    '/usr/bin/antigravity',
+  ]);
+}
+
+function detectCodexBinary(): string {
+  return detectNamedBinary('codex', [
+    path.join(os.homedir(), '.codex', 'bin', 'codex'),
+    path.join(os.homedir(), '.local', 'bin', 'codex'),
+    '/opt/homebrew/bin/codex',
+    '/usr/local/bin/codex',
+    '/usr/bin/codex',
+  ]);
 }
 
 function defaults(): KarkhanaConfig {
   return {
     claudeBinPath: detectClaudeBinary(),
-    concurrency: 3,
+    antigravityBinPath: detectAntigravityBinary(),
+    codexBinPath: detectCodexBinary(),
+    claudeEnabled: false,
+    anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? '',
+    openaiApiKey: process.env.OPENAI_API_KEY ?? '',
+    geminiApiKey: process.env.GEMINI_API_KEY ?? '',
+    concurrency: 10,
     worktreeRoot: null,
     dbPath: path.join(ROOT, 'karkhana.db'),
   };
@@ -91,12 +137,6 @@ export function getConfig(): KarkhanaConfig {
 
 /**
  * Validates and clamps a config patch before it's merged.
- *
- * A non-numeric `concurrency` (e.g. `"abc"` from a malformed PATCH body) used
- * to pass `next.concurrency < 1` unclamped — `"abc" < 1` is `false` — and get
- * written to disk verbatim. The orchestrator then evaluated
- * `this.active.size < this.limit` as `0 < "abc"`, which is also `false`, so no
- * task ever started again, across restarts, because the bad value persisted.
  */
 function sanitizePatch(patch: Partial<KarkhanaConfig>): Partial<KarkhanaConfig> {
   const clean: Partial<KarkhanaConfig> = { ...patch };
@@ -107,8 +147,20 @@ function sanitizePatch(patch: Partial<KarkhanaConfig>): Partial<KarkhanaConfig> 
   if ('claudeBinPath' in clean && typeof clean.claudeBinPath !== 'string') {
     delete clean.claudeBinPath;
   }
+  if ('anthropicApiKey' in clean && typeof clean.anthropicApiKey !== 'string') {
+    delete clean.anthropicApiKey;
+  }
+  if ('openaiApiKey' in clean && typeof clean.openaiApiKey !== 'string') {
+    delete clean.openaiApiKey;
+  }
+  if ('geminiApiKey' in clean && typeof clean.geminiApiKey !== 'string') {
+    delete clean.geminiApiKey;
+  }
   if ('worktreeRoot' in clean && clean.worktreeRoot !== null && typeof clean.worktreeRoot !== 'string') {
     delete clean.worktreeRoot;
+  }
+  if ('claudeEnabled' in clean) {
+    clean.claudeEnabled = Boolean(clean.claudeEnabled);
   }
   return clean;
 }
@@ -120,18 +172,20 @@ export function updateConfig(patch: Partial<KarkhanaConfig>): KarkhanaConfig {
   return next;
 }
 
-/** Validates that the configured binary exists and is executable. */
+/** Validates that at least one configured agent binary exists and is executable. */
 export function checkClaudeBinary(): { ok: boolean; reason?: string } {
-  const { claudeBinPath } = getConfig();
-  if (!claudeBinPath) {
-    return { ok: false, reason: 'No Claude Code binary configured or auto-detected.' };
+  const { claudeBinPath, antigravityBinPath, codexBinPath } = getConfig();
+  const paths = [claudeBinPath, antigravityBinPath, codexBinPath].filter(Boolean);
+  if (paths.length === 0) {
+    return { ok: false, reason: 'No Agent runner binary (Claude, Antigravity, or Codex) configured or auto-detected.' };
   }
-  try {
-    fs.accessSync(claudeBinPath, fs.constants.X_OK);
-    return { ok: true };
-  } catch {
-    return { ok: false, reason: `${claudeBinPath} is missing or not executable.` };
+  for (const p of paths) {
+    try {
+      fs.accessSync(p, fs.constants.X_OK);
+      return { ok: true };
+    } catch {}
   }
+  return { ok: false, reason: 'Configured agent binaries are missing or not executable.' };
 }
 
 /** Resolved worktree directory for a task, given its project. */

@@ -40,7 +40,7 @@ export function LogStream({ events, live }: { events: TaskEvent[]; live: boolean
   const onScroll = () => {
     const el = containerRef.current;
     if (!el) return;
-    setPinned(el.scrollHeight - el.scrollTop - el.clientHeight < 60);
+    setPinned(el.scrollHeight - el.scrollTop - el.clientHeight < 80);
   };
 
   const lines = events.flatMap((event) =>

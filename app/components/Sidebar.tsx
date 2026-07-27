@@ -120,7 +120,7 @@ export function Sidebar({ projects, tasks, selectedId, onSelect, onAdd, onRemove
             <div key={project.id} className="animate-rise group relative">
               <button
                 onClick={() => onSelect(project.id)}
-                className={`mb-0.5 flex w-full flex-col items-start rounded-md px-2 py-1.5 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-forge-500/60 ${
+                className={`mb-0.5 flex w-full flex-col items-start rounded-md px-2 py-1.5 pr-7 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-forge-500/60 ${
                   selectedId === project.id
                     ? 'bg-gradient-to-b from-ink-700 to-ink-700/70 text-ink-50 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]'
                     : 'text-ink-200 hover:bg-ink-800'
