@@ -191,7 +191,14 @@ export function updateConfig(patch: Partial<KarkhanaConfig>): KarkhanaConfig {
 
 /** Validates that at least one configured agent binary exists and is executable. */
 export function checkClaudeBinary(): { ok: boolean; reason?: string } {
-  const { claudeBinPath, antigravityBinPath, codexBinPath } = getConfig();
+  const config = getConfig();
+
+  // In Vercel serverless cloud mode or when API keys are provided, built-in cloud agent mode is active
+  if (process.env.VERCEL || config.anthropicApiKey || config.openaiApiKey || config.geminiApiKey) {
+    return { ok: true };
+  }
+
+  const { claudeBinPath, antigravityBinPath, codexBinPath } = config;
   const paths = [claudeBinPath, antigravityBinPath, codexBinPath].filter(Boolean);
   if (paths.length === 0) {
     return { ok: false, reason: 'No Agent runner binary (Claude, Antigravity, or Codex) configured or auto-detected.' };

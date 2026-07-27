@@ -82,22 +82,22 @@ export function NewTaskDialog({ projects, defaultProjectId, claudeEnabled, onClo
             <select
               value={model}
               onChange={(e) => setModel(e.target.value as Model)}
-              className="rounded border border-ink-600 bg-ink-900 px-2.5 py-1.5 text-[12px] font-medium text-forge-400 outline-none focus:border-forge-600 focus-visible:ring-2 focus-visible:ring-forge-500/50"
+              className="rounded-xl border border-amber-500/50 bg-[#101420] px-3 py-1.5 text-[12px] font-bold text-amber-300 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-500/40 shadow-inner"
             >
-              <optgroup label="Antigravity Agents (Recommended)">
-                <option value="antigravity-flash">Antigravity Flash</option>
-                <option value="antigravity-pro">Antigravity Pro</option>
+              <optgroup label="✨ Antigravity Engine Models">
+                <option value="antigravity-flash">⚡ Antigravity Flash</option>
+                <option value="antigravity-pro">🚀 Antigravity Pro</option>
               </optgroup>
-              <optgroup label="Codex / OpenAI Agents">
-                <option value="codex-gpt5.5">Codex GPT-5.5</option>
-                <option value="codex-gpt4o">Codex GPT-4o</option>
-                <option value="codex-o3-mini">Codex o3-mini</option>
+              <optgroup label="🤖 OpenAI / Codex Models">
+                <option value="codex-gpt5.5">🔥 Codex GPT-5.5 (Recommended)</option>
+                <option value="codex-gpt4o">🧠 Codex GPT-4o</option>
+                <option value="codex-o3-mini">🔬 Codex o3-mini</option>
               </optgroup>
               {claudeEnabled && (
-                <optgroup label="Claude Code Agents">
-                  <option value="sonnet">Claude Sonnet</option>
-                  <option value="opus">Claude Opus</option>
-                  <option value="haiku">Claude Haiku</option>
+                <optgroup label="🟣 Anthropic Claude Models">
+                  <option value="sonnet">Claude Sonnet 3.7</option>
+                  <option value="opus">Claude Opus 3.5</option>
+                  <option value="haiku">Claude Haiku 3.5</option>
                 </optgroup>
               )}
             </select>
