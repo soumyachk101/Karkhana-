@@ -72,6 +72,38 @@ export class Orchestrator {
     void this.drain();
   }
 
+  /** Runs a task synchronously (ideal for serverless functions on Vercel). */
+  async executeTaskSync(taskId: string): Promise<void> {
+    const task = getTask(taskId);
+    if (!task) return;
+
+    const project = getProject(task.project_id);
+    if (!project) {
+      this.fail(task, `Project ${task.project_id} no longer exists.`);
+      return;
+    }
+
+    let ready: Task = task;
+    try {
+      if (task.worktree_path) {
+        ready = task;
+      } else {
+        ready = await provisionTaskWorktree(project, task);
+      }
+    } catch (err) {
+      this.fail(task, `Could not create worktree: ${(err as Error).message}`);
+      return;
+    }
+
+    const handle = runAgent(project, ready, { resume: false });
+    this.active.set(task.id, handle);
+    this.publishStats();
+
+    await handle.done;
+    this.active.delete(task.id);
+    this.publishStats();
+  }
+
   /**
    * Starts as many queued tasks as the concurrency limit allows.
    *

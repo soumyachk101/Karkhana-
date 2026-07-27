@@ -47,8 +47,12 @@ export async function POST(req: Request) {
       model: body.model,
     });
 
-    // Queued immediately; the orchestrator starts it when a slot frees up.
-    orchestrator.enqueue(task.id);
+    // Queued immediately; on Vercel serverless environment execute synchronously
+    if (process.env.VERCEL) {
+      await orchestrator.executeTaskSync(task.id);
+    } else {
+      orchestrator.enqueue(task.id);
+    }
     return { task };
   });
 }
