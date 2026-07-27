@@ -7,6 +7,7 @@ import { MODELS, type Model, type Project, type Task, type TaskEvent } from '@/l
 import { ClaudeChatView } from './ClaudeChatView.tsx';
 import { DiffView } from './DiffView.tsx';
 import { LogStream } from './LogStream.tsx';
+import { TerminalView } from './TerminalView.tsx';
 
 type Props = {
   task: Task;
@@ -22,7 +23,7 @@ export function TaskDetail({ task, project, events, onClose, onAction }: Props) 
   const [resumePrompt, setResumePrompt] = useState('');
   const [showResume, setShowResume] = useState(false);
   const [diffKey, setDiffKey] = useState(0);
-  const [viewMode, setViewMode] = useState<'chat' | 'split' | 'logs' | 'diff'>('chat');
+  const [viewMode, setViewMode] = useState<'chat' | 'split' | 'logs' | 'diff' | 'terminal'>('chat');
 
   const isRunning = task.status === 'running';
   const isQueued = task.status === 'queued';
@@ -133,6 +134,16 @@ export function TaskDetail({ task, project, events, onClose, onAction }: Props) 
             >
               <Terminal className="h-3 w-3" />
               Logs
+            </button>
+            <button
+              onClick={() => setViewMode('terminal')}
+              className={`flex items-center gap-1 rounded px-2 py-0.5 transition ${
+                viewMode === 'terminal' ? 'bg-emerald-500 text-black font-semibold shadow' : 'text-ink-300 hover:text-ink-100'
+              }`}
+              title="Live Terminal Console"
+            >
+              <Terminal className="h-3 w-3" />
+              Terminal
             </button>
           </div>
 
@@ -329,6 +340,13 @@ export function TaskDetail({ task, project, events, onClose, onAction }: Props) 
               </div>
             )}
           </div>
+        )}
+
+        {viewMode === 'terminal' && (
+          <TerminalView
+            cwd={task.worktree_path || project?.path || process.cwd()}
+            projectName={project?.name}
+          />
         )}
       </div>
     </div>

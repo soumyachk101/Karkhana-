@@ -133,6 +133,18 @@ export class Orchestrator {
           errStr.includes('429') ||
           errStr.includes('quota');
 
+        if (outcome.status === 'needs_review' && getConfig().autoMerge && process.env.NODE_ENV !== 'test') {
+          const freshTask = getTask(task.id);
+          if (freshTask) {
+            void mergeTask(project, freshTask).then((res) => {
+              if (res.ok) {
+                const merged = updateTask(task.id, { status: 'merged' });
+                publish({ type: 'status', taskId: task.id, task: merged });
+              }
+            });
+          }
+        }
+
         if (outcome.status === 'failed' && isQuotaError && !ready.model.startsWith('antigravity')) {
           const ev = appendEvent(task.id, 'lifecycle', {
             kind: 'auto_fallback',
