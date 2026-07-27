@@ -168,8 +168,21 @@ export default function SettingsPage() {
             <p className="mt-2 text-[11px] text-ink-400">
               OpenAI Codex GPT-5.5, GPT-4o & o3-mini via OmniRoute Proxy (Port 20128)
             </p>
-            <div className="mt-3 font-mono text-[10px] text-ink-500">
-              Binary: /Users/soumyachakraborty/.npm-global/bin/codex
+            <div className="mt-3 flex items-center justify-between font-mono text-[10px] text-ink-500">
+              <span className="truncate">Binary: {config.codexBinPath || 'Auto-detecting...'}</span>
+              <button
+                onClick={async () => {
+                  await fetch('/api/system/setup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ binary: 'codex' }),
+                  });
+                  alert('Codex CLI setup completed!');
+                }}
+                className="ml-2 rounded bg-cyan-500/20 border border-cyan-500/40 px-2 py-0.5 text-cyan-300 hover:bg-cyan-500/30 transition"
+              >
+                Auto-Install
+              </button>
             </div>
           </div>
 
